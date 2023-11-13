@@ -1,10 +1,17 @@
 package datas
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
 
-const credentialsFormat = "%s:%s"
+const (
+	credentialsFormat = "%s;%s"
+	credentialssep    = ";"
+)
 
-var ErrCredsInvalidFormat = "credentials.SetValue: %w"
+var ErrCredsInvalidFormat = errors.New("invalid creds format")
 
 type credentials struct {
 	metaData
@@ -31,13 +38,12 @@ func (c credentials) Value() string {
 
 func (c *credentials) SetValue(value string) error {
 	c.editNow()
-	var login, password string
-	_, err := fmt.Sscanf(value, credentialsFormat, login, password)
-	if err != nil {
-		return fmt.Errorf(ErrCredsInvalidFormat, err)
+	values := strings.Split(value, credentialssep)
+	if len(values) != 2 {
+		return fmt.Errorf("%w: %q", ErrCredsInvalidFormat, value)
 	}
-	c.login = login
-	c.password = password
+	c.login = values[0]
+	c.password = values[1]
 
 	return nil
 }
