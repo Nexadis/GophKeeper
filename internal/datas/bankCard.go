@@ -1,6 +1,7 @@
 package datas
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,15 +9,16 @@ import (
 )
 
 const (
-	dateFormat     = "02/06"
-	bankCardFormat = "%s %s %s %d"
+	dateLayout     = "02/06"
+	sep            = ";"
+	bankCardFormat = "%s;%s;%s;%d"
 )
 
 var (
-	ErrCardInvalidNumber = "bankCard.validateNumber %s: %w"
-	ErrCardInvalidExpire = "bankCard.validateExpire %s: %w"
-	ErrCardInvalidCVV    = "bankCard.validateCVV '%s' invalid number"
-	ErrCardInvalidFormat = "bankCard.SetValue %w"
+	ErrCardInvalidNumber = errors.New("invalid number")
+	ErrCardInvalidExpire = errors.New("invalid expire date")
+	ErrCardInvalidCVV    = errors.New("invalid cvv")
+	ErrCardInvalidFormat = errors.New("can't parse card info")
 )
 
 type bankCard struct {
@@ -28,13 +30,29 @@ type bankCard struct {
 }
 
 func (bk bankCard) Type() DataType {
-	return BinaryType
+	return BankCardType
 }
 
-func NewBankCard(number, cardHolder, expire string) bankCard {
+func NewBankCard(number, cardHolder, expire string, cvv int) (bankCard, error) {
 	bc := bankCard{}
+	number, err := bc.validateNumber(number)
+	if err != nil {
+		return bc, err
+	}
+	err = bc.validateCVV(cvv)
+	if err != nil {
+		return bc, err
+	}
+	exp, err := bc.parseExpire(expire)
+	if err != nil {
+		return bc, err
+	}
 	bc.metaData = newMetaData()
-	return bc
+	bc.number = number
+	bc.cardHolder = cardHolder
+	bc.expire = exp
+	bc.cvv = cvv
+	return bc, nil
 }
 
 func (bc bankCard) Value() string {
@@ -42,20 +60,26 @@ func (bc bankCard) Value() string {
 		bankCardFormat,
 		bc.number,
 		bc.cardHolder,
-		bc.expire,
+		bc.expire.Format(dateLayout),
 		bc.cvv,
 	)
 }
 
 func (bc *bankCard) SetValue(value string) error {
 	bc.editNow()
-	var number, cardHolder, expire string
-	var cvv int
-	_, err := fmt.Sscanf(value, bankCardFormat, number, cardHolder, expire, cvv)
-	if err != nil {
-		return fmt.Errorf(ErrCardInvalidFormat, err)
+	values := strings.Split(value, sep)
+	if len(values) != 4 {
+		return fmt.Errorf("%w: %q", ErrCardInvalidFormat, value)
 	}
-	err = bc.validateNumber(number)
+	number := values[0]
+	cardHolder := values[1]
+	expire := values[2]
+	cvv, err := strconv.Atoi(values[3])
+	if err != nil {
+		return fmt.Errorf("%w: %q: %q", ErrCardInvalidCVV, err, value)
+	}
+
+	number, err = bc.validateNumber(number)
 	if err != nil {
 		return err
 	}
@@ -74,27 +98,30 @@ func (bc *bankCard) SetValue(value string) error {
 	return nil
 }
 
-func (bc bankCard) validateNumber(number string) error {
+func (bc bankCard) validateNumber(number string) (string, error) {
 	trimmedNum := strings.TrimSpace(number)
 	cardnum := strings.Join(strings.Split(trimmedNum, " "), "")
 	_, err := strconv.Atoi(cardnum)
 	if err != nil {
-		return fmt.Errorf(ErrCardInvalidNumber, number, err)
+		return "", fmt.Errorf("%w %q", ErrCardInvalidNumber, err)
 	}
-	return nil
+	if len(cardnum) != 16 {
+		return "", fmt.Errorf("%w: %q", ErrCardInvalidNumber, number)
+	}
+	return cardnum, nil
 }
 
 func (bc bankCard) parseExpire(expire string) (time.Time, error) {
-	t, err := time.Parse(dateFormat, expire)
+	t, err := time.Parse(dateLayout, expire)
 	if err != nil {
-		return time.Time{}, fmt.Errorf(ErrCardInvalidExpire, expire, err)
+		return time.Time{}, fmt.Errorf("%w: %q", ErrCardInvalidExpire, expire)
 	}
 	return t, nil
 }
 
 func (bc bankCard) validateCVV(CVV int) error {
 	if CVV <= 99 || CVV >= 1000 {
-		return fmt.Errorf(ErrCardInvalidCVV, CVV)
+		return fmt.Errorf("%w: %q", ErrCardInvalidCVV, CVV)
 	}
 	return nil
 }
