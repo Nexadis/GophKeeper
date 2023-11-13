@@ -47,7 +47,7 @@ func (bc bankCard) Value() string {
 	)
 }
 
-func (bc bankCard) SetValue(value string) error {
+func (bc *bankCard) SetValue(value string) error {
 	bc.editNow()
 	var number, cardHolder, expire string
 	var cvv int

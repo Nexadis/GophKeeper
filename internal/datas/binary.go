@@ -27,7 +27,7 @@ func (b binary) Value() string {
 	return base64.StdEncoding.EncodeToString(b.data)
 }
 
-func (b binary) SetValue(value string) error {
+func (b *binary) SetValue(value string) error {
 	b.editNow()
 	data, err := base64.StdEncoding.DecodeString(value)
 	if err != nil {

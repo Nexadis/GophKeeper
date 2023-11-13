@@ -29,7 +29,7 @@ func (c credentials) Value() string {
 	return fmt.Sprintf(credentialsFormat, c.login, c.password)
 }
 
-func (c credentials) SetValue(value string) error {
+func (c *credentials) SetValue(value string) error {
 	c.editNow()
 	var login, password string
 	_, err := fmt.Sscanf(value, credentialsFormat, login, password)

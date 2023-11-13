@@ -21,7 +21,7 @@ func (t text) Value() string {
 	return t.data
 }
 
-func (t text) SetValue(value string) error {
+func (t *text) SetValue(value string) error {
 	t.editNow()
 	t.data = value
 	return nil
