@@ -103,7 +103,7 @@ func TestNewBankCard(t *testing.T) {
 	}
 }
 
-func TestType(t *testing.T) {
+func TestBankCardType(t *testing.T) {
 	valid := card{
 		"1111 2222 3333 4444",
 		"My Name",
@@ -115,7 +115,7 @@ func TestType(t *testing.T) {
 	assert.Equal(t, BankCardType, c.Type())
 }
 
-func TestSetValue(t *testing.T) {
+func TestBankCardSetValue(t *testing.T) {
 	valid := card{
 		"1111 2222 3333 4444",
 		"My Name",
@@ -125,7 +125,6 @@ func TestSetValue(t *testing.T) {
 	c, err := NewBankCard(valid.number, valid.holder, valid.expire, valid.cvv)
 	assert.NoError(t, err)
 	val := c.Value()
-	t.Log(val)
 	err = c.SetValue(val)
 	assert.NoError(t, err)
 	assert.Equal(t, val, c.Value())

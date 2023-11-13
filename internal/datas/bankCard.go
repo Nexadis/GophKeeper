@@ -10,7 +10,7 @@ import (
 
 const (
 	dateLayout     = "02/06"
-	sep            = ";"
+	bankCardsep    = ";"
 	bankCardFormat = "%s;%s;%s;%d"
 )
 
@@ -67,7 +67,7 @@ func (bc bankCard) Value() string {
 
 func (bc *bankCard) SetValue(value string) error {
 	bc.editNow()
-	values := strings.Split(value, sep)
+	values := strings.Split(value, bankCardsep)
 	if len(values) != 4 {
 		return fmt.Errorf("%w: %q", ErrCardInvalidFormat, value)
 	}
