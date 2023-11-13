@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-var ErrBinaryInvalidValue = "binary.SetValue: %w"
+var ErrBinaryInvalidValue = "invalid value"
 
 type binary struct {
 	metaData
