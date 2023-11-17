@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -26,9 +27,14 @@ func MustConfig() *AppConfig {
 	setEnv()
 	loadConfig("config")
 	c := AppConfig{}
+
 	err := viper.Unmarshal(&c)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if c.Debug {
+		fmt.Println(viper.AllSettings())
 	}
 	return &c
 }
@@ -41,10 +47,19 @@ func loadDefaults() {
 	viper.SetDefault("db.uri", "postgresql://root:root@postgres:5432/keeper")
 
 	viper.SetDefault("crt", "server.crt")
+
+	err := viper.WriteConfigAs("example_config.yaml")
+	if err != nil {
+		fmt.Println(err)
+	}
+
 }
 
 func setEnv() {
-
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	viper.SetEnvPrefix("keeper")
+	viper.AutomaticEnv()
 }
 
 func loadConfig(c string) {
