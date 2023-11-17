@@ -26,8 +26,9 @@ type Auth struct {
 	cost     int
 }
 
-func NewAuth(urepo UserRepo, cost int) Auth {
-	return Auth{
+func NewAuth(urepo UserRepo) *Auth {
+	cost := bcrypt.DefaultCost
+	return &Auth{
 		urepo,
 		cost,
 	}

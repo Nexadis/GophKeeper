@@ -4,6 +4,19 @@ import (
 	"time"
 )
 
+type IData interface {
+	ID() int
+	SetID(id int)
+	UserID() int
+	SetUserID(id int)
+	Description() string
+	SetDescription(desc string)
+	CreatedAt() time.Time
+	EditedAt() time.Time
+	SetValue(value string) error
+	Value() string
+}
+
 type DataType int
 
 const (
