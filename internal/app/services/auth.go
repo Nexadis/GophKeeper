@@ -9,6 +9,8 @@ import (
 	"github.com/Nexadis/GophKeeper/internal/models/users"
 )
 
+const defaultCost = bcrypt.DefaultCost
+
 type UserRepo interface {
 	GetUserByID(ctx context.Context, id int) (users.User, error)
 	GetUserByName(ctx context.Context, username string) (users.User, error)
@@ -16,20 +18,22 @@ type UserRepo interface {
 	DeleteUser(ctx context.Context, username string) error
 }
 
-type Auther interface {
+type Hasher interface {
 	Auth(ctx context.Context, u users.User, password string) error
-	Hash(password string) ([]byte, error)
+	Password(password string) ([]byte, error)
 }
 
 type Auth struct {
 	userRepo UserRepo
+	hasher   Hasher
 	cost     int
 }
 
-func NewAuth(urepo UserRepo) *Auth {
-	cost := bcrypt.DefaultCost
+func NewAuth(urepo UserRepo, h Hasher) *Auth {
+	cost := defaultCost
 	return &Auth{
 		urepo,
+		h,
 		cost,
 	}
 }
@@ -44,7 +48,7 @@ func (a *Auth) UserRegister(
 	if !a.validPassword(password) {
 		return nil, ErrInvalidUsername
 	}
-	hash, err := a.hash(password)
+	hash, err := a.hasher.Password(password)
 	if err != nil {
 		return nil, fmt.Errorf("can't register user: %w", err)
 	}
@@ -64,7 +68,7 @@ func (a *Auth) UserLogin(
 	if err != nil {
 		return nil, fmt.Errorf("can't login user %s : %w", username, err)
 	}
-	err = a.auth(ctx, u, password)
+	err = a.hasher.Auth(ctx, u, password)
 	if err != nil {
 		return nil, fmt.Errorf("can't login user %s : %w", username, err)
 	}
@@ -72,17 +76,33 @@ func (a *Auth) UserLogin(
 }
 
 func (a Auth) validPassword(password string) bool {
+	if password == "" {
+		return false
+	}
 	return true
 }
 
 func (a Auth) validUsername(username string) bool {
+	if username == "" {
+		return false
+	}
 	return true
 }
 
-func (a Auth) hash(password string) ([]byte, error) {
-	return bcrypt.GenerateFromPassword([]byte(password), a.cost)
+func (h Hash) Password(password string) ([]byte, error) {
+	return bcrypt.GenerateFromPassword([]byte(password), h.cost)
 }
 
-func (a Auth) auth(ctx context.Context, u users.User, password string) error {
+func (h Hash) Auth(ctx context.Context, u users.User, password string) error {
 	return bcrypt.CompareHashAndPassword(u.Hash(), []byte(password))
+}
+
+type Hash struct {
+	cost int
+}
+
+func NewHash() *Hash {
+	return &Hash{
+		defaultCost,
+	}
 }
