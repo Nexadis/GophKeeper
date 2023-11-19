@@ -2,6 +2,8 @@ package users
 
 import (
 	"time"
+
+	"github.com/Nexadis/GophKeeper/internal/models"
 )
 
 type user struct {
@@ -18,22 +20,12 @@ type User interface {
 	CreatedAt() time.Time
 }
 
-func New(username string, hash []byte) *user {
-	now := time.Now()
-	return &user{
-		username:  username,
-		hash:      hash,
-		createdAt: now,
-	}
-}
-
 func (u user) ID() int {
 	return u.id
 }
 
 func (u *user) SetID(id int) {
 	u.id = id
-	u.createdAt = time.Now()
 }
 
 func (u user) Username() string {
@@ -46,4 +38,28 @@ func (u user) Hash() []byte {
 
 func (u user) CreatedAt() time.Time {
 	return u.createdAt
+}
+
+type UsersFactory struct {
+	t models.TimeProvider
+}
+
+// New Создаёт фабрику пользователей. TimeProvider помогает создавать моки для тестирования создания пользователей с одним и тем же временем создания.
+func New(t models.TimeProvider) *UsersFactory {
+	return &UsersFactory{
+		t,
+	}
+}
+
+// New Создаёт нового пользователя, с заданными параметрами.
+func (uc UsersFactory) New(username string, hash []byte) User {
+	now := time.Now()
+	if uc.t != nil {
+		now = uc.t.Now()
+	}
+	return &user{
+		username:  username,
+		hash:      hash,
+		createdAt: now,
+	}
 }
