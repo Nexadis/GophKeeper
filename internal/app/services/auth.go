@@ -23,17 +23,23 @@ type Hasher interface {
 	Password(password string) ([]byte, error)
 }
 
-type Auth struct {
-	userRepo UserRepo
-	hasher   Hasher
-	cost     int
+type UsersFactory interface {
+	New(username string, hash []byte) users.User
 }
 
-func NewAuth(urepo UserRepo, h Hasher) *Auth {
+type Auth struct {
+	userRepo    UserRepo
+	hasher      Hasher
+	userFactory UsersFactory
+	cost        int
+}
+
+func NewAuth(urepo UserRepo, h Hasher, uf UsersFactory) *Auth {
 	cost := defaultCost
 	return &Auth{
 		urepo,
 		h,
+		uf,
 		cost,
 	}
 }
@@ -52,7 +58,7 @@ func (a *Auth) UserRegister(
 	if err != nil {
 		return nil, fmt.Errorf("can't register user: %w", err)
 	}
-	u := users.New(username, hash)
+	u := a.userFactory.New(username, hash)
 	err = a.userRepo.AddUser(ctx, u)
 	if err != nil {
 		return nil, fmt.Errorf("can't register user: %w", err)
