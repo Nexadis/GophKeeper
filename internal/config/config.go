@@ -1,4 +1,4 @@
-package app
+package config
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 )
 
 type HTTPConfig struct {
+	Up      bool
 	Address string
 }
 type DBConfig struct {
@@ -19,13 +20,20 @@ type AppConfig struct {
 	Debug bool
 	HTTP  *HTTPConfig
 	DB    *DBConfig
+	Log   *LogConfig
 	Crt   string
+}
+
+type LogConfig struct {
+	Level    string
+	Outputs  []string
+	Encoding string
 }
 
 func MustConfig() *AppConfig {
 	loadDefaults()
-	setEnv()
 	loadConfig("config")
+	setEnv()
 	c := AppConfig{}
 
 	err := viper.Unmarshal(&c)
@@ -33,18 +41,20 @@ func MustConfig() *AppConfig {
 		log.Fatal(err)
 	}
 
-	if c.Debug {
-		fmt.Println(viper.AllSettings())
-	}
 	return &c
 }
 
 func loadDefaults() {
 	viper.SetDefault("debug", false)
 
+	viper.SetDefault("http.up", true)
 	viper.SetDefault("http.address", ":8080")
 
 	viper.SetDefault("db.uri", "postgresql://root:root@postgres:5432/keeper")
+
+	viper.SetDefault("log.level", "info")
+	viper.SetDefault("log.outputs", []string{"stdout"})
+	viper.SetDefault("log.encoding", "json")
 
 	viper.SetDefault("crt", "server.crt")
 
