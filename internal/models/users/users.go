@@ -15,6 +15,7 @@ type user struct {
 
 type User interface {
 	ID() int
+	SetID(int) User
 	Username() string
 	Hash() []byte
 	CreatedAt() time.Time
@@ -24,8 +25,9 @@ func (u user) ID() int {
 	return u.id
 }
 
-func (u *user) SetID(id int) {
+func (u *user) SetID(id int) User {
 	u.id = id
+	return u
 }
 
 func (u user) Username() string {

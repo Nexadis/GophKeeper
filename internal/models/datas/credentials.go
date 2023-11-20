@@ -23,13 +23,13 @@ func (c credentials) Type() DataType {
 	return CredentialsType
 }
 
-func NewCredentials(login string, password string) credentials {
+func NewCredentials(login string, password string) *credentials {
 	c := credentials{
 		login:    login,
 		password: password,
 	}
 	c.metaData = newMetaData()
-	return c
+	return &c
 }
 
 func (c credentials) Value() string {

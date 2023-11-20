@@ -16,11 +16,11 @@ func (b binary) Type() DataType {
 	return BinaryType
 }
 
-func NewBinary(data []byte) binary {
+func NewBinary(data []byte) *binary {
 	b := binary{}
 	copy(b.data, data)
 	b.metaData = newMetaData()
-	return b
+	return &b
 }
 
 func (b binary) Value() string {

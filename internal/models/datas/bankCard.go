@@ -33,26 +33,26 @@ func (bk bankCard) Type() DataType {
 	return BankCardType
 }
 
-func NewBankCard(number, cardHolder, expire string, cvv int) (bankCard, error) {
+func NewBankCard(number, cardHolder, expire string, cvv int) (*bankCard, error) {
 	bc := bankCard{}
 	number, err := bc.validateNumber(number)
 	if err != nil {
-		return bc, err
+		return nil, err
 	}
 	err = bc.validateCVV(cvv)
 	if err != nil {
-		return bc, err
+		return nil, err
 	}
 	exp, err := bc.parseExpire(expire)
 	if err != nil {
-		return bc, err
+		return nil, err
 	}
 	bc.metaData = newMetaData()
 	bc.number = number
 	bc.cardHolder = cardHolder
 	bc.expire = exp
 	bc.cvv = cvv
-	return bc, nil
+	return &bc, nil
 }
 
 func (bc bankCard) Value() string {
