@@ -92,8 +92,7 @@ func (ds *Data) DeleteByID(ctx context.Context, u users.User, id int) error {
 	if d.UserID() != u.ID() {
 		return fmt.Errorf("can't delete data with id %d : %w", id, ErrAccessDenied)
 	}
-	ds.dataRepo.DeleteByID(ctx, id)
-	return nil
+	return ds.dataRepo.DeleteByID(ctx, id)
 }
 
 func (ds *Data) Health(ctx context.Context) error {
