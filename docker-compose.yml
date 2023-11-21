@@ -1,0 +1,44 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16.1
+    environment:
+      - POSTGRES_DB=keeper
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+    networks:
+      - internal
+    ports:
+      - "5432:5432"
+
+  flyway:
+    image: flyway/flyway:10-alpine
+    environment:
+      - FLYWAY_USER=root
+      - FLYWAY_PASSWORD=root
+      - FLYWAY_URL=jdbc:postgresql://postgres/keeper
+    command: -connectRetries=60 migrate
+    volumes:
+      - ./migrations:/flyway/sql
+    networks:
+      - internal
+    depends_on:
+      - postgres
+
+  backend:
+    image: gophkeeper
+    build:
+      dockerfile: server.Dockerfile
+    networks:
+      - internal
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      - postgres
+      - flyway
+
+networks:
+  internal:
+
+
