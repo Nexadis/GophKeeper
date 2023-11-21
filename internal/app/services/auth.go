@@ -63,7 +63,7 @@ func (a *Auth) UserRegister(
 	if err != nil {
 		return nil, fmt.Errorf("can't register user: %w", err)
 	}
-	return a.UserLogin(ctx, username, password)
+	return u, nil
 }
 
 func (a *Auth) UserLogin(
