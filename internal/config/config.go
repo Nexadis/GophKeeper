@@ -9,14 +9,16 @@ import (
 )
 
 type HTTPConfig struct {
-	Up      bool
-	Address string
-	TLS     bool
-	CrtFile string
-	KeyFile string
+	Up        bool
+	Address   string
+	JWTSecret string
+	TLS       bool
+	CrtFile   string
+	KeyFile   string
 }
 type DBConfig struct {
-	URI string
+	URI     string
+	Timeout int64
 }
 
 type AppConfig struct {
@@ -56,6 +58,7 @@ func loadDefaults() {
 	viper.SetDefault("http.keyfile", "server.key")
 
 	viper.SetDefault("db.uri", "postgresql://root:root@postgres:5432/keeper")
+	viper.SetDefault("db.timeout", 10)
 
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.outputs", []string{"stdout"})
