@@ -11,6 +11,9 @@ import (
 type HTTPConfig struct {
 	Up      bool
 	Address string
+	TLS     bool
+	CrtFile string
+	KeyFile string
 }
 type DBConfig struct {
 	URI string
@@ -21,7 +24,6 @@ type AppConfig struct {
 	HTTP  *HTTPConfig
 	DB    *DBConfig
 	Log   *LogConfig
-	Crt   string
 }
 
 type LogConfig struct {
@@ -49,6 +51,9 @@ func loadDefaults() {
 
 	viper.SetDefault("http.up", true)
 	viper.SetDefault("http.address", ":8080")
+	viper.SetDefault("http.tls", false)
+	viper.SetDefault("http.crtfile", "server.crt")
+	viper.SetDefault("http.keyfile", "server.key")
 
 	viper.SetDefault("db.uri", "postgresql://root:root@postgres:5432/keeper")
 
