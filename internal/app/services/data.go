@@ -21,7 +21,7 @@ var (
 type DataRepo interface {
 	Add(ctx context.Context, data datas.IData) error
 	GetByID(ctx context.Context, id int) (datas.IData, error)
-	GetByUser(ctx context.Context, u users.User) ([]datas.IData, error)
+	GetByUser(ctx context.Context, u *users.User) ([]datas.IData, error)
 	Update(ctx context.Context, data datas.IData) error
 	DeleteByID(ctx context.Context, id int) error
 	Ping(ctx context.Context) error
@@ -38,10 +38,10 @@ func NewData(drepo DataRepo) *Data {
 }
 
 func (ds *Data) Add(ctx context.Context, u users.User, data datas.IData) error {
-	data.SetUserID(u.ID())
+	data.SetUserID(u.ID)
 	err := ds.dataRepo.Add(ctx, data)
 	if err != nil {
-		return fmt.Errorf("can't add data '%s' for %s : %w", data.Value(), u.Username(), err)
+		return fmt.Errorf("can't add data '%s' for %s : %w", data.Value(), u.Username, err)
 	}
 	return nil
 }
@@ -54,7 +54,7 @@ func (ds *Data) Update(ctx context.Context, u users.User, data datas.IData) erro
 	if err != nil {
 		return fmt.Errorf("can't update data '%s' : %w", data.Value(), err)
 	}
-	if d.UserID() != u.ID() {
+	if d.UserID() != u.ID {
 		return fmt.Errorf("you can't update this data '%s' : %w", data.Value(), ErrAccessDenied)
 	}
 	err = ds.dataRepo.Update(ctx, data)
@@ -70,16 +70,16 @@ func (ds Data) GetByID(ctx context.Context, u users.User, id int) (datas.IData, 
 	if err != nil {
 		return nil, fmt.Errorf("can't get data with id %d : %w", id, err)
 	}
-	if d.UserID() != u.ID() {
+	if d.UserID() != u.ID {
 		return nil, fmt.Errorf("you aren't owner of data with id %d : %w", id, ErrAccessDenied)
 	}
 	return d, nil
 }
 
-func (ds Data) GetByUser(ctx context.Context, u users.User) ([]datas.IData, error) {
+func (ds Data) GetByUser(ctx context.Context, u *users.User) ([]datas.IData, error) {
 	datas, err := ds.dataRepo.GetByUser(ctx, u)
 	if err != nil {
-		return nil, fmt.Errorf("can't get data for user %s : %w", u.Username(), err)
+		return nil, fmt.Errorf("can't get data for user %s : %w", u.Username, err)
 	}
 	return datas, nil
 }
@@ -89,7 +89,7 @@ func (ds *Data) DeleteByID(ctx context.Context, u users.User, id int) error {
 	if err != nil {
 		return fmt.Errorf("can't delete data with id %d : %w", id, err)
 	}
-	if d.UserID() != u.ID() {
+	if d.UserID() != u.ID {
 		return fmt.Errorf("can't delete data with id %d : %w", id, ErrAccessDenied)
 	}
 	return ds.dataRepo.DeleteByID(ctx, id)

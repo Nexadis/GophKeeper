@@ -58,7 +58,7 @@ func TestData_Add(t *testing.T) {
 			},
 			args{
 				nil,
-				users.New(nil).New("username", []byte("password")),
+				users.New("username", []byte("password")),
 				datas.NewCredentials("save_login", "save_password"),
 			},
 			false,
@@ -70,7 +70,7 @@ func TestData_Add(t *testing.T) {
 			},
 			args{
 				nil,
-				users.New(nil).New("username", []byte("password")),
+				users.New("username", []byte("password")),
 				datas.NewCredentials("save_login", "save_password"),
 			},
 			true,
@@ -102,7 +102,7 @@ func TestData_Update(t *testing.T) {
 	}
 	type args struct {
 		ctx  context.Context
-		u    users.User
+		u    *users.User
 		data datas.IData
 	}
 	tests := []struct {
@@ -115,11 +115,11 @@ func TestData_Update(t *testing.T) {
 			"Error data id",
 			nil,
 			func() args {
-				u := users.New(nil).New("username", []byte("password"))
+				u := users.New("username", []byte("password"))
 				d := datas.NewCredentials("save_login", "save_password")
 				return args{
 					nil,
-					u,
+					&u,
 					d,
 				}
 			},
@@ -135,12 +135,12 @@ func TestData_Update(t *testing.T) {
 				)
 			},
 			func() args {
-				u := users.New(nil).New("username", []byte("password"))
+				u := users.New("username", []byte("password"))
 				d := datas.NewCredentials("save_login", "save_password")
 				d.SetID(123)
 				return args{
 					nil,
-					u,
+					&u,
 					d,
 				}
 			},
@@ -156,14 +156,14 @@ func TestData_Update(t *testing.T) {
 				)
 			},
 			func() args {
-				u := users.New(nil).New("u", []byte("p"))
-				u.SetID(1)
+				u := users.New("u", []byte("p"))
+				u.ID = 1
 				d := datas.NewCredentials("save_login", "save_password")
 				d.SetID(123)
 				d.SetUserID(2)
 				return args{
 					nil,
-					u,
+					&u,
 					d,
 				}
 			},
@@ -185,14 +185,14 @@ func TestData_Update(t *testing.T) {
 				)
 			},
 			func() args {
-				u := users.New(nil).New("u", []byte("p"))
-				u.SetID(1)
+				u := users.New("u", []byte("p"))
+				u.ID = 1
 				d := datas.NewCredentials("save_login", "save_password")
 				d.SetID(123)
 				d.SetUserID(1)
 				return args{
 					nil,
-					u,
+					&u,
 					d,
 				}
 			},
@@ -214,14 +214,14 @@ func TestData_Update(t *testing.T) {
 				)
 			},
 			func() args {
-				u := users.New(nil).New("u", []byte("p"))
-				u.SetID(1)
+				u := users.New("u", []byte("p"))
+				u.ID = 1
 				d := datas.NewCredentials("save_login", "save_password")
 				d.SetID(123)
 				d.SetUserID(1)
 				return args{
 					nil,
-					u,
+					&u,
 					d,
 				}
 			},
@@ -242,7 +242,7 @@ func TestData_Update(t *testing.T) {
 				dataRepo: f.dataRepo,
 			}
 			args := tt.setargs()
-			if err := ds.Update(args.ctx, args.u, args.data); (err != nil) != tt.wantErr {
+			if err := ds.Update(args.ctx, *args.u, args.data); (err != nil) != tt.wantErr {
 				t.Errorf("Data.Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -255,7 +255,7 @@ func TestData_GetByID(t *testing.T) {
 	}
 	type args struct {
 		ctx context.Context
-		u   users.User
+		u   *users.User
 		id  int
 	}
 	tests := []struct {
@@ -290,11 +290,11 @@ func TestData_GetByID(t *testing.T) {
 
 			},
 			func() args {
-				u := users.New(nil).New("u", []byte("p"))
-				u.SetID(2)
+				u := users.New("u", []byte("p"))
+				u.ID = 2
 				return args{
 					nil,
-					u,
+					&u,
 					3,
 				}
 			},
@@ -310,11 +310,11 @@ func TestData_GetByID(t *testing.T) {
 
 			},
 			func() args {
-				u := users.New(nil).New("u", []byte("p"))
-				u.SetID(1)
+				u := users.New("u", []byte("p"))
+				u.ID = 1
 				return args{
 					nil,
-					u,
+					&u,
 					3,
 				}
 			},
@@ -336,7 +336,7 @@ func TestData_GetByID(t *testing.T) {
 				dataRepo: f.dataRepo,
 			}
 			args := tt.setargs()
-			got, err := ds.GetByID(args.ctx, args.u, args.id)
+			got, err := ds.GetByID(args.ctx, *args.u, args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Data.GetByID() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -356,7 +356,7 @@ func TestData_GetByUser(t *testing.T) {
 	}
 	type args struct {
 		ctx context.Context
-		u   users.User
+		u   *users.User
 	}
 	tests := []struct {
 		name    string
@@ -373,10 +373,10 @@ func TestData_GetByUser(t *testing.T) {
 					Return(nil, fmt.Errorf("user not found"))
 			},
 			func() args {
-				u := users.New(nil).New("u", []byte("p"))
+				u := users.New("u", []byte("p"))
 				return args{
 					nil,
-					u,
+					&u,
 				}
 			},
 			nil,
@@ -393,10 +393,10 @@ func TestData_GetByUser(t *testing.T) {
 					Return(ds, nil)
 			},
 			func() args {
-				u := users.New(nil).New("u", []byte("p"))
+				u := users.New("u", []byte("p"))
 				return args{
 					nil,
-					u,
+					&u,
 				}
 			},
 			[]datas.IData{
@@ -453,7 +453,7 @@ func TestData_DeleteByID(t *testing.T) {
 	}
 	type args struct {
 		ctx context.Context
-		u   users.User
+		u   *users.User
 		id  int
 	}
 	tests := []struct {
@@ -486,11 +486,11 @@ func TestData_DeleteByID(t *testing.T) {
 
 			},
 			func() args {
-				u := users.New(nil).New("u", []byte("p"))
-				u.SetID(2)
+				u := users.New("u", []byte("p"))
+				u.ID = 2
 				return args{
 					nil,
-					u,
+					&u,
 					3,
 				}
 			},
@@ -506,11 +506,11 @@ func TestData_DeleteByID(t *testing.T) {
 
 			},
 			func() args {
-				u := users.New(nil).New("u", []byte("p"))
-				u.SetID(1)
+				u := users.New("u", []byte("p"))
+				u.ID = 1
 				return args{
 					nil,
-					u,
+					&u,
 					3,
 				}
 			},
@@ -531,7 +531,7 @@ func TestData_DeleteByID(t *testing.T) {
 				dataRepo: f.dataRepo,
 			}
 			args := tt.setargs()
-			if err := ds.DeleteByID(args.ctx, args.u, args.id); (err != nil) != tt.wantErr {
+			if err := ds.DeleteByID(args.ctx, *args.u, args.id); (err != nil) != tt.wantErr {
 				t.Errorf("Data.DeleteByID() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

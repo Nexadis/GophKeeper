@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/Nexadis/GophKeeper/internal/app/services"
 	"github.com/Nexadis/GophKeeper/internal/config"
 	"github.com/Nexadis/GophKeeper/internal/database"
-	"github.com/Nexadis/GophKeeper/internal/models/users"
 )
 
 type Server struct {
@@ -17,22 +17,31 @@ type Server struct {
 	http   *httpserver.Server
 }
 
-func NewServer(c *config.AppConfig) Server {
-	repo := database.New(c.DB.URI)
-	uf := users.New(nil)
-	as := services.NewAuth(repo, services.NewHash(), uf)
-	ds := services.NewData(repo)
+func NewServer(c *config.AppConfig) (*Server, error) {
 	s := Server{
 		config: c,
 	}
-	if c.HTTP.Up {
-		s.http = httpserver.New(c.HTTP, ds, as)
-	}
-	return s
+	return &s, nil
 }
 
 func (s Server) Run(ctx context.Context) error {
+	dbctx, cancel := context.WithTimeout(
+		ctx,
+		time.Duration(s.config.DB.Timeout)*time.Second,
+	)
+	defer cancel()
+	repo, err := database.Connect(dbctx, s.config.DB)
+	if err != nil {
+		return err
+	}
+	as := services.NewAuth(repo, services.NewHash())
+	ds := services.NewData(repo)
+	if s.config.HTTP.Up {
+		s.http = httpserver.New(s.config.HTTP, ds, as)
+	}
+
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error { return s.http.Run(ctx) })
+	defer repo.Close()
 	return eg.Wait()
 }

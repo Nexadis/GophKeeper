@@ -2,10 +2,13 @@ package httpserver
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/gommon/log"
 
 	"github.com/Nexadis/GophKeeper/internal/app/services"
 	"github.com/Nexadis/GophKeeper/internal/config"
@@ -58,16 +61,16 @@ func (hs *Server) mountHandlers() {
 	hs.e.POST("/login", hs.Login)
 
 	apiv1 := hs.e.Group("/api/v1")
+	apiv1.GET("/ping", hs.Ping)
 
 	data := apiv1.Group("/data")
 
-	dataByID := data.Group("/:type/:id")
-	dataByID.GET("", hs.GetData)
-	dataByID.POST("", hs.PostData)
-	dataByID.DELETE("", hs.DeleteData)
-	dataByID.PATCH("", hs.UpdateData)
+	data.GET("", hs.GetData)
+	data.POST("", hs.PostData)
+	data.DELETE("", hs.DeleteData)
+	data.PATCH("", hs.UpdateData)
 
-	dataByUser := data.Group("/user/:id")
+	dataByUser := apiv1.Group("/user")
 	dataByUser.GET("", hs.GetUserData)
 	dataByUser.POST("", hs.PostUserData)
 	dataByUser.DELETE("", hs.DeleteUserData)
@@ -76,9 +79,37 @@ func (hs *Server) mountHandlers() {
 }
 
 func (hs *Server) Run(ctx context.Context) error {
+	hs.mustSecret()
 	if hs.config.TLS {
 		return hs.e.StartTLS(hs.config.Address, hs.config.CrtFile, hs.config.KeyFile)
 	}
-	return hs.e.Start(hs.config.Address)
+	logger.Info("Server is running without TLS. Be careful, your password may be intercepted!")
+	ctx, cancel := context.WithCancel(ctx)
+
+	go func() {
+		defer cancel()
+		err := hs.e.Start(hs.config.Address)
+		if err != nil {
+			logger.Error()
+		}
+
+	}()
+
+	<-ctx.Done()
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return hs.e.Shutdown(ctx)
+
+}
+
+func (hs *Server) mustSecret() {
+	if hs.config.JWTSecret == nil {
+		buf := make([]byte, 32)
+		_, err := rand.Read(buf)
+		if err != nil {
+			log.Fatal(err)
+		}
+		hs.config.JWTSecret = buf
+	}
 
 }
