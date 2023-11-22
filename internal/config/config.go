@@ -11,7 +11,7 @@ import (
 type HTTPConfig struct {
 	Up        bool
 	Address   string
-	JWTSecret string
+	JWTSecret []byte
 	TLS       bool
 	CrtFile   string
 	KeyFile   string
