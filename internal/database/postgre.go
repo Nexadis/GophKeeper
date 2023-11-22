@@ -20,6 +20,7 @@ import (
 )
 
 var ErrUserExist = errors.New("user is exist")
+var ErrUserNotFound = errors.New("user not found")
 
 type PgDB struct {
 	db *pgxpool.Pool
@@ -48,7 +49,7 @@ func (pg *PgDB) Add(ctx context.Context, data datas.IData) error {
 func (pg *PgDB) GetByID(ctx context.Context, id int) (datas.IData, error) {
 	return nil, nil
 }
-func (pg *PgDB) GetByUser(ctx context.Context, u users.User) ([]datas.IData, error) {
+func (pg *PgDB) GetByUser(ctx context.Context, u *users.User) ([]datas.IData, error) {
 	return nil, nil
 }
 func (pg *PgDB) Update(ctx context.Context, data datas.IData) error {
@@ -60,21 +61,43 @@ func (pg *PgDB) DeleteByID(ctx context.Context, id int) error {
 func (pg *PgDB) Ping(ctx context.Context) error {
 	return pg.db.Ping(ctx)
 }
-func (pg *PgDB) GetUserByID(ctx context.Context, id int) (users.User, error) {
+func (pg *PgDB) GetUserByID(ctx context.Context, id int) (*users.User, error) {
 	return nil, nil
 }
-func (pg *PgDB) GetUserByName(ctx context.Context, username string) (users.User, error) {
-	return nil, nil
+func (pg *PgDB) GetUserByName(ctx context.Context, username string) (*users.User, error) {
+	query := `SELECT id,username,hash,created_at FROM users WHERE username=@username`
+	args := pgx.NamedArgs{
+		"username": username,
+	}
+	logger.Debug(fmt.Sprintf("Get user %s from db", username))
+	res := pg.db.QueryRow(ctx, query, args)
+	var u users.User
+	var hash string
+	err := res.Scan(&u.ID, &u.Username, &hash, &u.CreatedAt)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.NoDataFound {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("problem with db: %w", err)
+	}
+	h, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+	u.Hash = append(u.Hash, h...)
+	logger.Debug(fmt.Sprintf("Get user %s with id %d", u.Username, u.ID))
+	return &u, nil
 }
 
-func (pg *PgDB) AddUser(ctx context.Context, u users.User) error {
+func (pg *PgDB) AddUser(ctx context.Context, u *users.User) error {
 	query := `INSERT INTO users (username, hash, created_at) VALUES (@username, @hash, @created_at) RETURNING id`
 	args := pgx.NamedArgs{
-		"username":   u.Username(),
-		"hash":       hex.EncodeToString(u.Hash()),
-		"created_at": u.CreatedAt(),
+		"username":   u.Username,
+		"hash":       hex.EncodeToString(u.Hash),
+		"created_at": u.CreatedAt,
 	}
-	logger.Debug(fmt.Sprintf("Add user %s in db", u.Username()))
+	logger.Debug(fmt.Sprintf("Add user %s in db", u.Username))
 	res := pg.db.QueryRow(ctx, query, args)
 	var id int
 	err := res.Scan(&id)
@@ -86,9 +109,8 @@ func (pg *PgDB) AddUser(ctx context.Context, u users.User) error {
 		}
 		return fmt.Errorf("problem with db: %w", err)
 	}
-	u.SetID(id)
-	logger.Debug(fmt.Sprintf("Added user %s with id %d", u.Username(), id))
-
+	u.ID = id
+	logger.Debug(fmt.Sprintf("Added user %s with id %d", u.Username, id))
 	return nil
 
 }
