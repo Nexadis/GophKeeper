@@ -29,6 +29,8 @@ services:
     image: gophkeeper
     build:
       dockerfile: server.Dockerfile
+    environment:
+      - KEEPER_LOG_LEVEL=DEBUG
     networks:
       - internal
     ports:

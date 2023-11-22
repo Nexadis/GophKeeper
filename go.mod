@@ -3,8 +3,9 @@ module github.com/Nexadis/GophKeeper
 go 1.21.2
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.1.0
+	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.5.0
-	github.com/jmoiron/sqlx v1.3.5
 	github.com/labstack/echo/v4 v4.11.3
 	github.com/labstack/gommon v0.4.0
 	github.com/spf13/viper v1.17.0
