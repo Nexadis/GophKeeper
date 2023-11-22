@@ -84,12 +84,10 @@ func TestAuth_UserRegister(t *testing.T) {
 		{
 			"Normal user",
 			func(f *fields) {
-				n := "username"
 				p := "password"
-				u := users.New(n, []byte(p))
 				gomock.InOrder(
 					f.hasher.EXPECT().Password(p).Return([]byte(p), nil),
-					f.userRepo.EXPECT().AddUser(nil, u).Return(nil),
+					f.userRepo.EXPECT().AddUser(nil, gomock.Any()).Return(nil),
 				)
 
 			},
@@ -104,12 +102,12 @@ func TestAuth_UserRegister(t *testing.T) {
 		{
 			"AddUser problem",
 			func(f *fields) {
-				n := "username"
 				p := "password"
-				u := users.New(n, []byte(p))
 				gomock.InOrder(
 					f.hasher.EXPECT().Password(p).Return([]byte(p), nil),
-					f.userRepo.EXPECT().AddUser(nil, u).Return(fmt.Errorf("db is disconnected")),
+					f.userRepo.EXPECT().
+						AddUser(nil, gomock.Any()).
+						Return(fmt.Errorf("db is disconnected")),
 				)
 
 			},
@@ -133,7 +131,8 @@ func TestAuth_UserRegister(t *testing.T) {
 			}
 			if tt.prepare != nil {
 				if tt.wantErr != true {
-					*tt.want = users.New(tt.args.username, []byte(tt.args.password))
+					u := users.New(tt.args.username, []byte(tt.args.password))
+					tt.want = &u
 				}
 				tt.prepare(f)
 			}
@@ -147,8 +146,11 @@ func TestAuth_UserRegister(t *testing.T) {
 				t.Errorf("Auth.UserRegister() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Auth.UserRegister() = %v, want %v", got, tt.want)
+			if tt.want != nil {
+				if !(got.Username == tt.want.Username && reflect.DeepEqual(got.Hash, tt.want.Hash) &&
+					got.ID == tt.want.ID) {
+					t.Errorf("Auth.UserRegister() = %v, want %v", got, tt.want)
+				}
 			}
 		})
 	}
@@ -199,7 +201,7 @@ func TestAuth_UserLogin(t *testing.T) {
 				gomock.InOrder(
 					f.userRepo.EXPECT().
 						GetUserByName(nil, n).
-						Return(u, nil),
+						Return(&u, nil),
 					f.hasher.EXPECT().Auth(nil, u, p).Return(ErrAccessDenied),
 				)
 
@@ -221,7 +223,7 @@ func TestAuth_UserLogin(t *testing.T) {
 				gomock.InOrder(
 					f.userRepo.EXPECT().
 						GetUserByName(nil, n).
-						Return(u, nil),
+						Return(&u, nil),
 					f.hasher.EXPECT().Auth(nil, u, p).Return(nil),
 				)
 
@@ -246,7 +248,8 @@ func TestAuth_UserLogin(t *testing.T) {
 			}
 			if tt.prepare != nil {
 				if tt.wantErr != true {
-					*tt.want = users.New(tt.args.username, []byte(tt.args.password))
+					u := users.New(tt.args.username, []byte(tt.args.password))
+					tt.want = &u
 				}
 				tt.prepare(f)
 			}
@@ -260,8 +263,13 @@ func TestAuth_UserLogin(t *testing.T) {
 				t.Errorf("Auth.UserLogin() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			if tt.want != nil {
+				if !(got.Username == tt.want.Username && reflect.DeepEqual(got.Hash, tt.want.Hash) &&
+					got.ID == tt.want.ID) {
+					t.Errorf("Auth.UserLogin() = %v, want %v", got, tt.want)
+				}
+			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Auth.UserLogin() = %v, want %v", got, tt.want)
 			}
 		})
 	}

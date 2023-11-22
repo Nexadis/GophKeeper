@@ -272,9 +272,11 @@ func TestData_GetByID(t *testing.T) {
 
 			},
 			func() args {
+				u := users.New("u", []byte("p"))
+				u.ID = 2
 				return args{
 					nil,
-					nil,
+					&u,
 					1,
 				}
 			},
@@ -469,9 +471,10 @@ func TestData_DeleteByID(t *testing.T) {
 
 			},
 			func() args {
+				u := users.New("u", []byte("p"))
 				return args{
 					nil,
-					nil,
+					&u,
 					1,
 				}
 			},
