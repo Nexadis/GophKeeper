@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
@@ -60,26 +62,32 @@ func (hs *Server) mountHandlers() {
 	hs.e.POST("/register", hs.Register)
 	hs.e.POST("/login", hs.Login)
 
+	hs.mustSecret()
+
 	apiv1 := hs.e.Group("/api/v1")
-	apiv1.GET("/ping", hs.Ping)
+	{
+		config := echojwt.Config{
+			NewClaimsFunc: func(c echo.Context) jwt.Claims {
+				return new(Claims)
+			},
+			SigningKey: hs.config.JWTSecret,
+		}
+		apiv1.Use(echojwt.WithConfig(config))
+		apiv1.GET("/ping", hs.Ping)
 
-	data := apiv1.Group("/data")
+		data := apiv1.Group("/data")
+		{
+			data.GET("", hs.GetData)
+			data.POST("", hs.PostData)
+			data.DELETE("", hs.DeleteData)
+			data.PATCH("", hs.UpdateData)
+		}
 
-	data.GET("", hs.GetData)
-	data.POST("", hs.PostData)
-	data.DELETE("", hs.DeleteData)
-	data.PATCH("", hs.UpdateData)
-
-	dataByUser := apiv1.Group("/user")
-	dataByUser.GET("", hs.GetUserData)
-	dataByUser.POST("", hs.PostUserData)
-	dataByUser.DELETE("", hs.DeleteUserData)
-	dataByUser.PATCH("", hs.UpdateUserData)
+	}
 
 }
 
 func (hs *Server) Run(ctx context.Context) error {
-	hs.mustSecret()
 	if hs.config.TLS {
 		return hs.e.StartTLS(hs.config.Address, hs.config.CrtFile, hs.config.KeyFile)
 	}
