@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/Nexadis/GophKeeper/internal/models/datas"
-	"github.com/Nexadis/GophKeeper/internal/models/users"
 )
 
 var (
@@ -19,10 +18,10 @@ var (
 )
 
 type DataRepo interface {
-	Add(ctx context.Context, data datas.IData) error
-	GetByID(ctx context.Context, id int) (datas.IData, error)
-	GetByUser(ctx context.Context, u *users.User) ([]datas.IData, error)
-	Update(ctx context.Context, data datas.IData) error
+	Add(ctx context.Context, data *datas.Data) error
+	GetByID(ctx context.Context, id int) (*datas.Data, error)
+	GetByUser(ctx context.Context, uid int) ([]*datas.Data, error)
+	Update(ctx context.Context, data *datas.Data) error
 	DeleteByID(ctx context.Context, id int) error
 	Ping(ctx context.Context) error
 }
@@ -37,60 +36,79 @@ func NewData(drepo DataRepo) *Data {
 	}
 }
 
-func (ds *Data) Add(ctx context.Context, u users.User, data datas.IData) error {
-	data.SetUserID(u.ID)
-	err := ds.dataRepo.Add(ctx, data)
+func (ds *Data) Add(ctx context.Context, uid int, data *datas.Data) error {
+	d, err := datas.NewData(data.Type, data.Value)
 	if err != nil {
-		return fmt.Errorf("can't add data '%s' for %s : %w", data.Value(), u.Username, err)
+		return fmt.Errorf("can't add data '%s' for uid=%d : %w'", data.Value, uid, err)
 	}
+	d.UserID = uid
+	err = ds.dataRepo.Add(ctx, d)
+	if err != nil {
+		return fmt.Errorf("can't add data '%s' for uid=%d : %w", data.Value, uid, err)
+	}
+	*data = *d
 	return nil
 }
 
-func (ds *Data) Update(ctx context.Context, u users.User, data datas.IData) error {
-	if data.ID() == 0 {
+func (ds *Data) Update(ctx context.Context, uid int, data *datas.Data) error {
+	if data.ID == 0 {
 		return ErrInvalidDataID
 	}
-	d, err := ds.dataRepo.GetByID(ctx, data.ID())
+	err := data.SetValue(data.Value)
 	if err != nil {
-		return fmt.Errorf("can't update data '%s' : %w", data.Value(), err)
+		return fmt.Errorf("can't update data '%s' with id=%d : %w'", data.Value, data.ID, err)
 	}
-	if d.UserID() != u.ID {
-		return fmt.Errorf("you can't update this data '%s' : %w", data.Value(), ErrAccessDenied)
+	d, err := ds.dataRepo.GetByID(ctx, data.ID)
+	if err != nil {
+		return fmt.Errorf("can't update data '%s' with id=%d : %w'", data.Value, data.ID, err)
+	}
+	if d.UserID != uid {
+		return fmt.Errorf(
+			"uid=%d can't update this data '%s' : %w",
+			uid,
+			data.Value,
+			ErrAccessDenied,
+		)
 	}
 	err = ds.dataRepo.Update(ctx, data)
 	if err != nil {
-		return fmt.Errorf("can't update data '%s' : %w", data.Value(), err)
+		return fmt.Errorf("can't update data '%s' with id=%d : %w'", data.Value, data.ID, err)
 	}
 
 	return nil
 }
 
-func (ds Data) GetByID(ctx context.Context, u users.User, id int) (datas.IData, error) {
+func (ds Data) GetByID(ctx context.Context, uid int, id int) (*datas.Data, error) {
 	d, err := ds.dataRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("can't get data with id %d : %w", id, err)
+		return nil, fmt.Errorf("can't get data with id=%d : %w", id, err)
 	}
-	if d.UserID() != u.ID {
-		return nil, fmt.Errorf("you aren't owner of data with id %d : %w", id, ErrAccessDenied)
+	if d.UserID != uid {
+		return nil, fmt.Errorf(
+			"uid=%d isn't owner of data with id=%d : %w",
+			uid,
+			id,
+			ErrAccessDenied,
+		)
 	}
 	return d, nil
 }
 
-func (ds Data) GetByUser(ctx context.Context, u *users.User) ([]datas.IData, error) {
-	datas, err := ds.dataRepo.GetByUser(ctx, u)
+func (ds Data) GetByUser(ctx context.Context, uid int) ([]*datas.Data, error) {
+	datas, err := ds.dataRepo.GetByUser(ctx, uid)
 	if err != nil {
-		return nil, fmt.Errorf("can't get data for user %s : %w", u.Username, err)
+		return nil, fmt.Errorf("can't get data for uid=%d : %w", uid, err)
 	}
 	return datas, nil
 }
 
-func (ds *Data) DeleteByID(ctx context.Context, u users.User, id int) error {
+func (ds *Data) DeleteByID(ctx context.Context, uid, id int) error {
 	d, err := ds.dataRepo.GetByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("can't delete data with id %d : %w", id, err)
 	}
-	if d.UserID() != u.ID {
-		return fmt.Errorf("can't delete data with id %d : %w", id, ErrAccessDenied)
+	if d.UserID != uid {
+		return fmt.Errorf("uid=%d can't delete data with id %d : %w", uid, id, ErrAccessDenied)
 	}
 	return ds.dataRepo.DeleteByID(ctx, id)
 }
