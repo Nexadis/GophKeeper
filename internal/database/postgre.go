@@ -21,6 +21,7 @@ import (
 
 var ErrUserExist = errors.New("user is exist")
 var ErrUserNotFound = errors.New("user not found")
+var ErrDataNotFound = errors.New("data not found")
 
 type PgDB struct {
 	db *pgxpool.Pool
@@ -43,19 +44,102 @@ func (pg *PgDB) Close() {
 	pg.db.Close()
 }
 
-func (pg *PgDB) Add(ctx context.Context, data datas.IData) error {
-	return nil
+func (pg *PgDB) Add(ctx context.Context, dlist []*datas.Data) error {
+	query := `INSERT INTO datas (
+	user_id,
+	dtype,
+	description,
+	value,
+	created_at,
+	edited_at) 
+
+	VALUES (
+  @user_id,
+  @dtype,
+  @description,
+  @value ,
+  @created_at,
+  @edited_at) `
+	batch := &pgx.Batch{}
+	for _, data := range dlist {
+		args := pgx.NamedArgs{
+			"user_id":     data.UserID,
+			"dtype":       data.Type,
+			"description": data.Description,
+			"value":       data.Value,
+			"created_at":  data.CreatedAt,
+			"edited_at":   data.EditedAt,
+		}
+		batch.Queue(query, args)
+	}
+	results := pg.db.SendBatch(ctx, batch)
+	defer results.Close()
+	for _, d := range dlist {
+		_, err := results.Exec()
+		if err != nil {
+			return fmt.Errorf("can't add data '%s': %w", d.Value, err)
+		}
+
+	}
+	uid := dlist[0].UserID
+
+	logger.Debug(fmt.Sprintf("Added batch with data from uid=%d", uid))
+	return results.Close()
+
 }
-func (pg *PgDB) GetByID(ctx context.Context, id int) (datas.IData, error) {
+func (pg *PgDB) GetByID(ctx context.Context, id int) (*datas.Data, error) {
+	query := `SELECT id,user_id,dtype,description, value, created_at, edited_at FROM datas WHERE id=@id`
+	args := pgx.NamedArgs{
+		"id": id,
+	}
+	logger.Debug("Get data with id %d from db", id)
+	res := pg.db.QueryRow(ctx, query, args)
+	var d datas.Data
+	err := res.Scan(&d.ID, &d.UserID, &d.Type, &d.Description, &d.Value, &d.CreatedAt, &d.EditedAt)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.NoDataFound {
+			return nil, ErrDataNotFound
+		}
+	}
+	logger.Debug("Get data: %v", d)
+	return &d, nil
+
+}
+func (pg *PgDB) GetByUser(ctx context.Context, uid int) ([]*datas.Data, error) {
 	return nil, nil
 }
-func (pg *PgDB) GetByUser(ctx context.Context, u *users.User) ([]datas.IData, error) {
-	return nil, nil
+func (pg *PgDB) Update(ctx context.Context, dlist []*datas.Data) error {
+	query := "UPDATE datas SET value=@value, edited_at=@edited_at, description=@description WHERE id=@id AND user_id=@user_id"
+	batch := &pgx.Batch{}
+	for _, data := range dlist {
+		args := pgx.NamedArgs{
+			"id":          data.ID,
+			"user_id":     data.UserID,
+			"value":       data.Value,
+			"edited_at":   data.EditedAt,
+			"description": data.Description,
+		}
+		batch.Queue(query, args)
+	}
+	results := pg.db.SendBatch(ctx, batch)
+	defer results.Close()
+	for _, d := range dlist {
+		_, err := results.Exec()
+		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.NoDataFound {
+				return fmt.Errorf("can't update data id=%d: %w", d.ID, ErrDataNotFound)
+
+			}
+			return fmt.Errorf("can't update data id=%d: %w", d.ID, err)
+
+		}
+
+	}
+	return results.Close()
 }
-func (pg *PgDB) Update(ctx context.Context, data datas.IData) error {
-	return nil
-}
-func (pg *PgDB) DeleteByID(ctx context.Context, id int) error {
+func (pg *PgDB) DeleteByIDs(ctx context.Context, uid int, ids []int) error {
 	return nil
 }
 func (pg *PgDB) Ping(ctx context.Context) error {
@@ -79,7 +163,7 @@ func (pg *PgDB) GetUserByName(ctx context.Context, username string) (*users.User
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.NoDataFound {
 			return nil, ErrUserNotFound
 		}
-		return nil, fmt.Errorf("problem with db: %w", err)
+		return nil, fmt.Errorf("problem with db in get user by name for '%s' : %w", username, err)
 	}
 	h, err := hex.DecodeString(hash)
 	if err != nil {
@@ -107,7 +191,7 @@ func (pg *PgDB) AddUser(ctx context.Context, u *users.User) error {
 
 			return ErrUserExist
 		}
-		return fmt.Errorf("problem with db: %w", err)
+		return fmt.Errorf("problem with db in add user '%s' : %w", u.Username, err)
 	}
 	u.ID = id
 	logger.Debug(fmt.Sprintf("Added user %s with id %d", u.Username, id))
