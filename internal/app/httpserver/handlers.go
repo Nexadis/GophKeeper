@@ -7,8 +7,10 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/Nexadis/GophKeeper/internal/app/services"
 	"github.com/Nexadis/GophKeeper/internal/database"
 	"github.com/Nexadis/GophKeeper/internal/logger"
+	"github.com/Nexadis/GophKeeper/internal/models/datas"
 )
 
 func (hs *Server) Register(c echo.Context) error {
@@ -62,29 +64,89 @@ func (hs *Server) Login(c echo.Context) error {
 }
 
 func (hs *Server) GetData(c echo.Context) error {
-	return nil
+	uid, err := GetUID(c)
+	if err != nil {
+		logger.Error(fmt.Errorf("Problem with uid: %w", err))
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	d, err := hs.dataService.GetByUser(c.Request().Context(), uid)
+	if err != nil {
+		logger.Error(fmt.Errorf("Problem with GetData: %w", err))
+		switch {
+		case errors.Is(err, services.ErrDataNotFound):
+			return c.NoContent(http.StatusNotFound)
+		default:
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+	return c.JSON(http.StatusOK, d)
+
 }
 func (hs *Server) PostData(c echo.Context) error {
-	return nil
+	d := []datas.Data{}
+	err := c.Bind(&d)
+	if err != nil {
+		logger.Error(err)
+		return c.JSON(http.StatusBadRequest, err)
+	}
+	uid, err := GetUID(c)
+	if err != nil {
+		logger.Error(err)
+		return c.JSON(http.StatusBadRequest, err)
+	}
+	logger.Debug(fmt.Sprintf("POST %d datas: %v", len(d), d))
+	err = hs.dataService.Add(c.Request().Context(), uid, d)
+	if err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+	return c.JSON(http.StatusOK, d)
+
 }
 func (hs *Server) DeleteData(c echo.Context) error {
-	return nil
+	ids := []int{}
+	err := c.Bind(&ids)
+	if err != nil {
+		logger.Error(fmt.Errorf("Invalid ids: %w", err))
+		return c.NoContent(http.StatusBadRequest)
+	}
+	uid, err := GetUID(c)
+	if err != nil {
+		logger.Error(fmt.Errorf("Problem with uid: %w", err))
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	err = hs.dataService.DeleteByID(c.Request().Context(), uid, ids)
+	if err != nil {
+		logger.Error(fmt.Errorf("Problem with GetData: %w", err))
+		switch {
+		case errors.Is(err, services.ErrDataNotFound):
+			return c.NoContent(http.StatusNotFound)
+		default:
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+	return c.NoContent(http.StatusOK)
+
 }
 func (hs *Server) UpdateData(c echo.Context) error {
-	return nil
-}
-
-func (hs *Server) GetUserData(c echo.Context) error {
-	return nil
-}
-func (hs *Server) PostUserData(c echo.Context) error {
-	return nil
-}
-func (hs *Server) DeleteUserData(c echo.Context) error {
-	return nil
-}
-func (hs *Server) UpdateUserData(c echo.Context) error {
-	return nil
+	d := []datas.Data{}
+	err := c.Bind(&d)
+	if err != nil {
+		logger.Error(err)
+		return c.JSON(http.StatusBadRequest, err)
+	}
+	uid, err := GetUID(c)
+	if err != nil {
+		logger.Error(err)
+		return c.JSON(http.StatusBadRequest, err)
+	}
+	logger.Debug(fmt.Sprintf("Patch %d datas: %v", len(d), d))
+	err = hs.dataService.Update(c.Request().Context(), uid, d)
+	if err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+	return c.JSON(http.StatusOK, d)
 }
 
 func (hs *Server) Ping(c echo.Context) error {
