@@ -1,8 +1,11 @@
 package datas
 
 import (
+	"errors"
 	"time"
 )
+
+var ErrInvalidType = errors.New("invalid type")
 
 type IData interface {
 	ID() int
@@ -25,6 +28,47 @@ const (
 	CredentialsType
 	TextType
 )
+
+// Data - контейнер для всех типов данных
+type Data struct {
+	ID          int       `json:"id,omitempty"`
+	UserID      int       `json:"uid,omitempty"`
+	Type        DataType  `json:"type"`
+	Description string    `json:"description,omitempty"`
+	CreatedAt   time.Time `json:"created_at,omitempty"`
+	EditedAt    time.Time `json:"edited_at,omitempty"`
+	Value       string    `json:"value"`
+}
+
+func NewData(t DataType, value string) (*Data, error) {
+	now := time.Now()
+	d := Data{
+		Type:      t,
+		CreatedAt: now,
+		EditedAt:  now,
+	}
+	err := d.SetValue(value)
+	return &d, err
+}
+
+func (d *Data) SetValue(value string) error {
+	switch d.Type {
+	case BinaryType:
+		return d.SetBinary(value)
+	case TextType:
+		return d.SetText(value)
+	case BankCardType:
+		return d.SetBankCard(value)
+	case CredentialsType:
+		return d.SetCredentials(value)
+	default:
+		return ErrInvalidType
+	}
+}
+
+func (d *Data) editNow() {
+	d.EditedAt = time.Now()
+}
 
 type metaData struct {
 	id        int

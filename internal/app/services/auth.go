@@ -12,9 +12,9 @@ import (
 const defaultCost = bcrypt.DefaultCost
 
 type UserRepo interface {
-	GetUserByID(ctx context.Context, id int) (users.User, error)
-	GetUserByName(ctx context.Context, username string) (users.User, error)
-	AddUser(ctx context.Context, u users.User) error
+	GetUserByID(ctx context.Context, id int) (*users.User, error)
+	GetUserByName(ctx context.Context, username string) (*users.User, error)
+	AddUser(ctx context.Context, u *users.User) error
 	DeleteUser(ctx context.Context, username string) error
 }
 
@@ -23,23 +23,17 @@ type Hasher interface {
 	Password(password string) ([]byte, error)
 }
 
-type UsersFactory interface {
-	New(username string, hash []byte) users.User
-}
-
 type Auth struct {
-	userRepo    UserRepo
-	hasher      Hasher
-	userFactory UsersFactory
-	cost        int
+	userRepo UserRepo
+	hasher   Hasher
+	cost     int
 }
 
-func NewAuth(urepo UserRepo, h Hasher, uf UsersFactory) *Auth {
+func NewAuth(urepo UserRepo, h Hasher) *Auth {
 	cost := defaultCost
 	return &Auth{
 		urepo,
 		h,
-		uf,
 		cost,
 	}
 }
@@ -47,34 +41,34 @@ func NewAuth(urepo UserRepo, h Hasher, uf UsersFactory) *Auth {
 func (a *Auth) UserRegister(
 	ctx context.Context,
 	username, password string,
-) (users.User, error) {
+) (*users.User, error) {
 	if !a.validUsername(username) {
 		return nil, ErrInvalidUsername
 	}
 	if !a.validPassword(password) {
-		return nil, ErrInvalidUsername
+		return nil, ErrInvalidPassword
 	}
 	hash, err := a.hasher.Password(password)
 	if err != nil {
-		return nil, fmt.Errorf("can't register user: %w", err)
+		return nil, fmt.Errorf("can't register user %s : %w", username, err)
 	}
-	u := a.userFactory.New(username, hash)
-	err = a.userRepo.AddUser(ctx, u)
+	u := users.New(username, hash)
+	err = a.userRepo.AddUser(ctx, &u)
 	if err != nil {
-		return nil, fmt.Errorf("can't register user: %w", err)
+		return nil, fmt.Errorf("can't register user %s : %w", username, err)
 	}
-	return a.UserLogin(ctx, username, password)
+	return &u, nil
 }
 
 func (a *Auth) UserLogin(
 	ctx context.Context,
 	username, password string,
-) (users.User, error) {
+) (*users.User, error) {
 	u, err := a.userRepo.GetUserByName(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("can't login user %s : %w", username, err)
 	}
-	err = a.hasher.Auth(ctx, u, password)
+	err = a.hasher.Auth(ctx, *u, password)
 	if err != nil {
 		return nil, fmt.Errorf("can't login user %s : %w", username, err)
 	}
@@ -100,7 +94,7 @@ func (h Hash) Password(password string) ([]byte, error) {
 }
 
 func (h Hash) Auth(ctx context.Context, u users.User, password string) error {
-	return bcrypt.CompareHashAndPassword(u.Hash(), []byte(password))
+	return bcrypt.CompareHashAndPassword(u.Hash, []byte(password))
 }
 
 type Hash struct {

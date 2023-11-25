@@ -5,6 +5,12 @@ type text struct {
 	data string
 }
 
+func (d *Data) SetText(value string) error {
+	d.editNow()
+	d.Value = value
+	return nil
+}
+
 func (t text) Type() DataType {
 	return TextType
 }
