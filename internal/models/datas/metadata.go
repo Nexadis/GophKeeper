@@ -1,6 +1,8 @@
 package datas
 
-import "time"
+import (
+	"time"
+)
 
 type DataType int
 
