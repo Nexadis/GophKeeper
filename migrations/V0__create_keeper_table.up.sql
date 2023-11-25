@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS datas (
   id bigserial primary key,
   user_id INT NOT NULL,
-  dtype VARCHAR(32) NOT NULL,
+  dtype INT NOT NULL,
   description VARCHAR(2048),
   value VARCHAR(128) NOT NULL,
   created_at TIMESTAMP NOT NULL,
