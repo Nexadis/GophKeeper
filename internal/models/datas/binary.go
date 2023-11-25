@@ -37,3 +37,9 @@ func (b *binary) SetValue(value string) error {
 	b.data = data
 	return nil
 }
+
+func (d *Data) SetBinary(value string) error {
+	d.editNow()
+	_, err := base64.StdEncoding.DecodeString(value)
+	return err
+}

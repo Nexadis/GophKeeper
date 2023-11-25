@@ -37,7 +37,6 @@ func (c credentials) Value() string {
 }
 
 func (c *credentials) SetValue(value string) error {
-	c.editNow()
 	values := strings.Split(value, credentialssep)
 	if len(values) != 2 {
 		return fmt.Errorf("%w: %q", ErrCredsInvalidFormat, value)
@@ -45,5 +44,15 @@ func (c *credentials) SetValue(value string) error {
 	c.login = values[0]
 	c.password = values[1]
 
+	return nil
+}
+
+func (d *Data) SetCredentials(value string) error {
+	d.editNow()
+	values := strings.Split(value, credentialssep)
+	if len(values) != 2 {
+		return fmt.Errorf("%w: %q", ErrCredsInvalidFormat, value)
+	}
+	d.Value = value
 	return nil
 }
