@@ -9,12 +9,12 @@ func (t text) Type() DataType {
 	return TextType
 }
 
-func NewText(data string) text {
+func NewText(data string) *text {
 	t := text{
 		data: data,
 	}
 	t.metaData = newMetaData()
-	return t
+	return &t
 }
 
 func (t text) Value() string {
