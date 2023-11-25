@@ -46,7 +46,7 @@ func (a *Auth) UserRegister(
 		return nil, ErrInvalidUsername
 	}
 	if !a.validPassword(password) {
-		return nil, ErrInvalidUsername
+		return nil, ErrInvalidPassword
 	}
 	hash, err := a.hasher.Password(password)
 	if err != nil {
