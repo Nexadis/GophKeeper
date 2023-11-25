@@ -44,7 +44,7 @@ func (pg *PgDB) Close() {
 	pg.db.Close()
 }
 
-func (pg *PgDB) Add(ctx context.Context, dlist []*datas.Data) error {
+func (pg *PgDB) Add(ctx context.Context, dlist []datas.Data) error {
 	query := `INSERT INTO datas (
 	user_id,
 	dtype,
@@ -106,10 +106,35 @@ func (pg *PgDB) GetByID(ctx context.Context, id int) (*datas.Data, error) {
 	return &d, nil
 
 }
-func (pg *PgDB) GetByUser(ctx context.Context, uid int) ([]*datas.Data, error) {
-	return nil, nil
+func (pg *PgDB) GetByUser(ctx context.Context, uid int) ([]datas.Data, error) {
+	query := `SELECT * FROM datas WHERE user_id=@user_id`
+	args := pgx.NamedArgs{
+		"user_id": uid,
+	}
+	rows, err := pg.db.Query(ctx, query, args)
+	if err != nil {
+		return nil, fmt.Errorf("unable to query data of uid=%d : %w", uid, err)
+	}
+	defer rows.Close()
+
+	return pgx.CollectRows(rows,
+		func(row pgx.CollectableRow) (datas.Data, error) {
+			var d datas.Data
+			err := row.Scan(
+				&d.ID,
+				&d.UserID,
+				&d.Type,
+				&d.Description,
+				&d.Value,
+				&d.CreatedAt,
+				&d.EditedAt,
+			)
+			return d, err
+		},
+	)
+
 }
-func (pg *PgDB) Update(ctx context.Context, dlist []*datas.Data) error {
+func (pg *PgDB) Update(ctx context.Context, dlist []datas.Data) error {
 	query := "UPDATE datas SET value=@value, edited_at=@edited_at, description=@description WHERE id=@id AND user_id=@user_id"
 	batch := &pgx.Batch{}
 	for _, data := range dlist {
@@ -140,7 +165,27 @@ func (pg *PgDB) Update(ctx context.Context, dlist []*datas.Data) error {
 	return results.Close()
 }
 func (pg *PgDB) DeleteByIDs(ctx context.Context, uid int, ids []int) error {
-	return nil
+	query := `DELETE FROM datas WHERE id=@id AND user_id=@uid`
+	batch := &pgx.Batch{}
+	for _, id := range ids {
+		args := pgx.NamedArgs{
+			"id":  id,
+			"uid": uid,
+		}
+		batch.Queue(query, args)
+	}
+	results := pg.db.SendBatch(ctx, batch)
+	defer results.Close()
+	for _, id := range ids {
+		_, err := results.Exec()
+		if err != nil {
+			return fmt.Errorf("can't delete data id=%d : %w", id, err)
+		}
+
+	}
+
+	logger.Debug(fmt.Sprintf("Data deleted by request of uid=%d", uid))
+	return results.Close()
 }
 func (pg *PgDB) Ping(ctx context.Context) error {
 	return pg.db.Ping(ctx)
