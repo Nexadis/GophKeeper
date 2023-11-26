@@ -1,4 +1,4 @@
-package httpserver
+package http
 
 import (
 	"context"
@@ -18,13 +18,13 @@ import (
 )
 
 type Server struct {
-	config      *config.HTTPConfig
+	config      *config.HTTPServerConfig
 	e           *echo.Echo
 	dataService *services.Data
 	authService *services.Auth
 }
 
-func New(c *config.HTTPConfig, d *services.Data, a *services.Auth) *Server {
+func New(c *config.HTTPServerConfig, d *services.Data, a *services.Auth) *Server {
 	e := echo.New()
 	hs := &Server{
 		c,
@@ -59,12 +59,12 @@ func (hs *Server) mountHandlers() {
 		},
 		),
 	)
-	hs.e.POST("/register", hs.Register)
-	hs.e.POST("/login", hs.Login)
+	hs.e.POST(APIRegister, hs.Register)
+	hs.e.POST(APILogin, hs.Login)
 
 	hs.mustSecret()
 
-	apiv1 := hs.e.Group("/api/v1")
+	apiv1 := hs.e.Group(APIv1)
 	{
 		config := echojwt.Config{
 			NewClaimsFunc: func(c echo.Context) jwt.Claims {
@@ -73,9 +73,9 @@ func (hs *Server) mountHandlers() {
 			SigningKey: hs.config.JWTSecret,
 		}
 		apiv1.Use(echojwt.WithConfig(config))
-		apiv1.GET("/ping", hs.Ping)
+		apiv1.GET(APIPing, hs.Ping)
 
-		data := apiv1.Group("/data")
+		data := apiv1.Group(APIData)
 		{
 			data.GET("", hs.GetData)
 			data.POST("", hs.PostData)
