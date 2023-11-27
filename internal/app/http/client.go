@@ -40,6 +40,10 @@ func NewClient(c *config.HTTPClientConfig) *Client {
 
 }
 
+func (hc *Client) SetAddress(address string) {
+	hc.config.Address = address
+}
+
 func (hc *Client) Login(ctx context.Context, login, password string) error {
 	resp, err := hc.client.R().
 		SetContext(ctx).
