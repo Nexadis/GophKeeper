@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-type HTTPConfig struct {
+type HTTPServerConfig struct {
 	Up        bool
 	Address   string
 	JWTSecret []byte
@@ -16,16 +16,29 @@ type HTTPConfig struct {
 	CrtFile   string
 	KeyFile   string
 }
+
+type HTTPClientConfig struct {
+	Address string
+	TLS     bool
+	CrtFile string
+	Retries int
+}
 type DBConfig struct {
 	URI     string
 	Timeout int64
 }
 
-type AppConfig struct {
+type ServerConfig struct {
 	Debug bool
-	HTTP  *HTTPConfig
+	HTTP  *HTTPServerConfig
 	DB    *DBConfig
 	Log   *LogConfig
+}
+
+type ClientConfig struct {
+	Debug bool
+	Log   *LogConfig
+	HTTP  *HTTPClientConfig
 }
 
 type LogConfig struct {
@@ -34,11 +47,11 @@ type LogConfig struct {
 	Encoding string
 }
 
-func MustConfig() *AppConfig {
-	loadDefaults()
-	loadConfig("config")
+func MustServerConfig() *ServerConfig {
+	loadServerDefaults()
+	loadConfig("server")
 	setEnv()
-	c := AppConfig{}
+	c := ServerConfig{}
 
 	err := viper.Unmarshal(&c)
 	if err != nil {
@@ -48,7 +61,20 @@ func MustConfig() *AppConfig {
 	return &c
 }
 
-func loadDefaults() {
+func MustClientConfig() *ClientConfig {
+	loadClientDefaults()
+	loadConfig("client")
+	setEnv()
+	c := ClientConfig{}
+
+	err := viper.Unmarshal(&c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &c
+}
+
+func loadServerDefaults() {
 	viper.SetDefault("debug", false)
 
 	viper.SetDefault("http.up", true)
@@ -70,6 +96,20 @@ func loadDefaults() {
 	if err != nil {
 		fmt.Println(err)
 	}
+
+}
+
+func loadClientDefaults() {
+	viper.SetDefault("debug", false)
+
+	viper.SetDefault("http.address", "localhost:8080")
+	viper.SetDefault("http.tls", false)
+	viper.SetDefault("http.crtfile", "server.crt")
+	viper.SetDefault("http.retries", 5)
+
+	viper.SetDefault("log.level", "info")
+	viper.SetDefault("log.outputs", []string{"stdout", "client.log"})
+	viper.SetDefault("log.encoding", "console")
 
 }
 
