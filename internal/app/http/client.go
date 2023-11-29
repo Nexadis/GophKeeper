@@ -81,7 +81,7 @@ func (hc *Client) Register(ctx context.Context, login, password string) error {
 			Login:    login,
 			Password: password,
 		}).
-		Post(hc.config.Address + APILogin)
+		Post(hc.config.Address + APIRegister)
 	if err != nil {
 		return fmt.Errorf("Problems with connection: %w", err)
 	}
@@ -89,6 +89,7 @@ func (hc *Client) Register(ctx context.Context, login, password string) error {
 	case http.StatusConflict:
 		return fmt.Errorf("Can't create user %s: %w", login, ErrUserExist)
 	case http.StatusBadRequest:
+		fallthrough
 	case http.StatusInternalServerError:
 		return fmt.Errorf("Error on server %w: %s", ErrServerProblem, (resp.Body()))
 	}
