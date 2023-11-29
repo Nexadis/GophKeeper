@@ -24,10 +24,16 @@ type Connection interface {
 type Tui struct {
 	app           *tview.Application
 	pages         *tview.Pages
+	pageList      []page
 	currentPage   int
 	loginAttempts int
 	err           error
 	c             Connection
+}
+
+type page struct {
+	Name string
+	View tview.Primitive
 }
 
 func NewTui(c Connection) *Tui {
@@ -36,18 +42,18 @@ func NewTui(c Connection) *Tui {
 	t := &Tui{
 		app,
 		pages,
+		nil,
 		0,
 		0,
 		nil,
 		c,
 	}
-	pageList := []pageFunc{
-		makePageFunc(t.IntroPage(HelloMessage)),
-	}
-	for i, v := range pageList {
-		name, obj := v()
-		pages.AddPage(name, obj, true, i == 0)
-
+	t.pageList = append(t.pageList,
+		makePage(t.IntroPage(HelloMessage)),
+		makePage(t.SignPage()),
+	)
+	for i, v := range t.pageList {
+		pages.AddPage(v.Name, v.View, true, i == 0)
 	}
 	t.pages = pages
 	return t
@@ -58,11 +64,7 @@ func (t *Tui) Run(ctx context.Context) error {
 	return t.app.SetRoot(t.pages, true).Run()
 }
 
-type pageFunc func() (string, tview.Primitive)
-
-func makePageFunc(name string, page tview.Primitive) pageFunc {
-	return func() (string, tview.Primitive) {
-		return name, page
-	}
+func makePage(name string, view tview.Primitive) page {
+	return page{name, view}
 
 }
