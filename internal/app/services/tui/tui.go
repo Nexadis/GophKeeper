@@ -8,9 +8,6 @@ import (
 	"github.com/Nexadis/GophKeeper/internal/models/datas"
 )
 
-const HelloMessage = `Hello, this is GophKeeper - Application for save and modify your data.
-You can sign up in the system and your notes will be saved.`
-
 type Connection interface {
 	Login(ctx context.Context, login, password string) error
 	Register(ctx context.Context, login, password string) error
@@ -51,6 +48,7 @@ func NewTui(c Connection) *Tui {
 	t.pageList = append(t.pageList,
 		makePage(t.IntroPage(HelloMessage)),
 		makePage(t.SignPage()),
+		makePage(t.KeeperPage()),
 	)
 	for i, v := range t.pageList {
 		pages.AddPage(v.Name, v.View, true, i == 0)

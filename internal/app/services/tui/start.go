@@ -8,7 +8,12 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+
+	"github.com/Nexadis/GophKeeper/internal/logger"
 )
+
+const HelloMessage = `Hello, this is GophKeeper - Application for save and modify your data.
+You can sign up in the system and your notes will be saved.`
 
 type LoginForm struct {
 	*tview.Form
@@ -36,10 +41,12 @@ func (t *Tui) SignPage() (string, LoginForm) {
 		password := form.GetFormItem(2).(*tview.InputField)
 		err := t.c.Login(context.TODO(), login.GetText(), password.GetText())
 		if err != nil {
-			t.err = err
+			t.err = fmt.Errorf("can't sign in: %w", err)
+			logger.Error(t.err)
 			redraw()
 			return
 		}
+		t.err = err
 		t.nextPage()
 	}).
 		AddButton("Sign Up", func() {
@@ -49,15 +56,17 @@ func (t *Tui) SignPage() (string, LoginForm) {
 			password := form.GetFormItem(2).(*tview.InputField)
 			err := t.c.Register(context.TODO(), login.GetText(), password.GetText())
 			if err != nil {
-				t.err = err
+				t.err = fmt.Errorf("can't sign up: %w", err)
+				logger.Error(t.err)
 				redraw()
 				return
 			}
+			logger.Infof("Successful sign up new user %s", login)
+			t.err = err
 			t.nextPage()
-
 		})
 	if t.err != nil {
-		form.AddTextView("Can't login:", t.err.Error(), 80, 1, true, true)
+		form.AddTextView("Error: ", t.err.Error(), 80, 1, true, true)
 	}
 
 	form.SetBackgroundColor(tcell.ColorBlack)
@@ -103,19 +112,16 @@ func (t *Tui) IntroPage(text string) (string, tview.Primitive) {
 }
 
 func (t *Tui) nextPage() {
-	t.currentPage++
-	if len(t.pageList)-1 < t.currentPage {
-		t.currentPage--
+	if len(t.pageList)-1 > t.currentPage {
+		t.currentPage++
 	}
 	pg := t.pageList[t.currentPage]
 	t.pages.SwitchToPage(pg.Name)
-
 }
 
 func (t *Tui) prevPage() {
-	t.currentPage--
-	if 0 > t.currentPage {
-		t.currentPage++
+	if t.currentPage > 0 {
+		t.currentPage--
 	}
 	pg := t.pageList[t.currentPage]
 	t.pages.SwitchToPage(pg.Name)
