@@ -37,3 +37,13 @@ func Error(args ...interface{}) {
 func Debug(args ...interface{}) {
 	logger.Debug(args...)
 }
+
+func Infof(template string, args ...interface{}) {
+	logger.Infof(template, args...)
+}
+func Errorf(template string, args ...interface{}) {
+	logger.Errorf(template, args...)
+}
+func Debugf(template string, args ...interface{}) {
+	logger.Debugf(template, args...)
+}
