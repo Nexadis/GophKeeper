@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	c := config.MustConfig()
+	c := config.MustServerConfig()
 	logger.Init(c.Log)
 	a, err := app.NewServer(c)
 	if err != nil {
