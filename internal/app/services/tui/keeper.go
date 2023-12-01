@@ -12,59 +12,64 @@ import (
 )
 
 type KeeperView struct {
-	c             Connection
 	UpdateList    []datas.Data
 	AddedList     []datas.Data
 	UntouchedList []datas.Data
 
-	*tview.Flex
+	*tview.Table
 }
 
-func (t *Tui) KeeperPage() (string, *tview.Table) {
+func (t *Tui) KeeperPage() (string, *KeeperView) {
 	title := "Goph Keeper"
-	table := tview.NewTable().SetFixed(1, 1)
-	table.SetFocusFunc(
+	k := KeeperView{}
+	k.Table = tview.NewTable().SetFixed(1, 1)
+	k.Table.SetFocusFunc(
 		func() {
-
-			UntouchedList, err := t.c.GetData(context.TODO())
+			var err error
+			k.UntouchedList, err = t.c.GetData(context.TODO())
 			if err != nil {
 				t.err = err
 			}
-			setHeaderTable(table)
-			for row, line := range UntouchedList {
-				id := strconv.Itoa(line.ID)
-				dtype := line.Type.String()
-				val := line.Value
-				desc := line.Description
-				logger.Debugf("Add %v in table", line)
+			k.setHeaderTable()
+			for row, line := range k.UntouchedList {
+				k.addRow(row, line)
 
-				tableIDCell := tview.NewTableCell(id).
-					SetAlign(tview.AlignCenter).
-					SetSelectable(false)
-				tableTypeCell := tview.NewTableCell(dtype).
-					SetAlign(tview.AlignCenter).
-					SetSelectable(false)
-				tableValCell := tview.NewTableCell(val).
-					SetAlign(tview.AlignCenter).
-					SetSelectable(false)
-				tableDescCell := tview.NewTableCell(desc).
-					SetAlign(tview.AlignCenter).
-					SetSelectable(false)
-				table.SetCell(row+1, 0, tableIDCell)
-				table.SetCell(row+1, 1, tableTypeCell)
-				table.SetCell(row+1, 2, tableValCell)
-				table.SetCell(row+1, 3, tableDescCell)
 			}
-			logger.Debugf("Got %d data", len(UntouchedList))
+			logger.Debugf("Got %d data", len(k.UntouchedList))
 
 		},
 	)
-	table.SetTitle(title).SetBorder(true)
-	return title, table
+	k.Table.SetTitle(title).SetBorder(true)
+	return title, &k
 
 }
 
-func setHeaderTable(t *tview.Table) {
+func (k *KeeperView) addRow(row int, line datas.Data) {
+	id := strconv.Itoa(line.ID)
+	dtype := line.Type.String()
+	val := line.Value
+	desc := line.Description
+	logger.Debugf("Add %v in table", line)
+
+	tableIDCell := tview.NewTableCell(id).
+		SetAlign(tview.AlignCenter).
+		SetSelectable(true)
+	tableTypeCell := tview.NewTableCell(dtype).
+		SetAlign(tview.AlignCenter).
+		SetSelectable(true)
+	tableValCell := tview.NewTableCell(val).
+		SetAlign(tview.AlignCenter).
+		SetSelectable(true)
+	tableDescCell := tview.NewTableCell(desc).
+		SetAlign(tview.AlignCenter).
+		SetSelectable(true)
+	k.Table.SetCell(row+1, 0, tableIDCell)
+	k.Table.SetCell(row+1, 1, tableTypeCell)
+	k.Table.SetCell(row+1, 2, tableValCell)
+	k.Table.SetCell(row+1, 3, tableDescCell)
+}
+
+func (k *KeeperView) setHeaderTable() {
 	tableIDTop := tview.NewTableCell("ID").
 		SetTextColor(tcell.ColorDarkCyan).
 		SetAlign(tview.AlignCenter).
@@ -81,8 +86,8 @@ func setHeaderTable(t *tview.Table) {
 		SetTextColor(tcell.ColorDarkCyan).
 		SetAlign(tview.AlignCenter).
 		SetSelectable(false)
-	t.SetCell(0, 0, tableIDTop)
-	t.SetCell(0, 1, tableTypeTop)
-	t.SetCell(0, 2, tableValueTop)
-	t.SetCell(0, 3, tableDescTop)
+	k.Table.SetCell(0, 0, tableIDTop)
+	k.Table.SetCell(0, 1, tableTypeTop)
+	k.Table.SetCell(0, 2, tableValueTop)
+	k.Table.SetCell(0, 3, tableDescTop)
 }
