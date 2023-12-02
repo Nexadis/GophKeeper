@@ -66,3 +66,19 @@ func makePage(name string, view tview.Primitive) page {
 	return page{name, view}
 
 }
+
+func (t *Tui) nextPage() {
+	if len(t.pageList)-1 > t.currentPage {
+		t.currentPage++
+	}
+	pg := t.pageList[t.currentPage]
+	t.pages.SwitchToPage(pg.Name)
+}
+
+func (t *Tui) prevPage() {
+	if t.currentPage > 0 {
+		t.currentPage--
+	}
+	pg := t.pageList[t.currentPage]
+	t.pages.SwitchToPage(pg.Name)
+}
