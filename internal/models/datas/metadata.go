@@ -29,6 +29,28 @@ const (
 	TextType
 )
 
+func ParseDataType(d string) (DataType, error) {
+	switch d {
+	case BankCardType.String():
+		return BankCardType, nil
+	case BinaryType.String():
+		return BinaryType, nil
+	case CredentialsType.String():
+		return CredentialsType, nil
+	case TextType.String():
+		return TextType, nil
+	default:
+		return 0, ErrInvalidType
+	}
+}
+
+var Types []string = []string{
+	BankCardType.String(),
+	BinaryType.String(),
+	CredentialsType.String(),
+	TextType.String(),
+}
+
 // Data - контейнер для всех типов данных
 type Data struct {
 	ID          int       `json:"id,omitempty"`
