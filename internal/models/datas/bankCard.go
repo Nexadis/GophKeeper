@@ -50,6 +50,10 @@ func (d *Data) SetBankCard(value string) error {
 
 	return nil
 }
+func (d *Data) BankCardValues() (number, cardHolder, expire string, cvv int) {
+	fmt.Sscanf(d.Value, bankCardFormat, number, cardHolder, expire, cvv)
+	return
+}
 
 func validateNumber(number string) (string, error) {
 	trimmedNum := strings.TrimSpace(number)

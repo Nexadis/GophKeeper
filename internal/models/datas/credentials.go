@@ -56,3 +56,8 @@ func (d *Data) SetCredentials(value string) error {
 	d.Value = value
 	return nil
 }
+
+func (d *Data) CredentialsValues() (login string, password string) {
+	fmt.Sscanf(d.Value, credentialsFormat, login, password)
+	return
+}
