@@ -41,5 +41,9 @@ func (b *binary) SetValue(value string) error {
 func (d *Data) SetBinary(value string) error {
 	d.editNow()
 	_, err := hex.DecodeString(value)
-	return err
+	if err != nil {
+		return err
+	}
+	d.Value = value
+	return nil
 }
