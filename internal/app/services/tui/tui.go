@@ -73,6 +73,7 @@ func (t *Tui) nextPage() {
 	}
 	pg := t.pageList[t.currentPage]
 	t.pages.SwitchToPage(pg.Name)
+	t.app.SetFocus(pg.View)
 }
 
 func (t *Tui) prevPage() {

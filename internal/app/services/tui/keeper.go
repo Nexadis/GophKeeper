@@ -212,7 +212,18 @@ func (k *KeeperView) setupKeyboard() tview.Primitive {
 			AddItem(tview.NewTextView().SetText("d - delete choosed row from table"), 0, 1, false),
 		0, 1, false,
 	).
-		AddItem(tview.NewTextView().SetText("ctrl+s - save changed table on server"), 0, 1, false)
+		AddItem(
+			tview.NewFlex().SetDirection(tview.FlexRow).
+				AddItem(
+					tview.NewTextView().
+						SetText("ctrl+s - save changed table on server"),
+					0, 1, false).
+				AddItem(
+					tview.NewTextView().
+						SetText("escape - back step to login page"),
+					0, 1, false),
+			0, 1, false,
+		)
 	helper.SetTitle("Help").SetBorder(true)
 
 	k.table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -241,6 +252,9 @@ func (k *KeeperView) setupKeyboard() tview.Primitive {
 		case tcell.KeyCtrlS:
 			k.updateTable()
 			return nil
+		case tcell.KeyEscape:
+			k.UntouchedList = nil
+			k.t.prevPage()
 		}
 		return event
 	})
