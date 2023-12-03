@@ -108,7 +108,7 @@ func loadClientDefaults() {
 	viper.SetDefault("http.retries", 5)
 
 	viper.SetDefault("log.level", "info")
-	viper.SetDefault("log.outputs", []string{"stdout", "client.log"})
+	viper.SetDefault("log.outputs", []string{"client.log"})
 	viper.SetDefault("log.encoding", "console")
 
 }
