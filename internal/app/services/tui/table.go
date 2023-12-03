@@ -73,7 +73,7 @@ func (k *KeeperView) setupTable() {
 	k.table.Clear()
 	k.UntouchedList, err = k.t.c.GetData(context.TODO())
 	if err != nil {
-		k.errorShow.SetText(fmt.Sprintf("Error while setup Table: %s", err.Error()))
+		k.messageShow.SetText(fmt.Sprintf("Error while setup Table: %s", err.Error()))
 		k.t.err = err
 	}
 	k.setHeaderTable()
@@ -88,7 +88,9 @@ func (k *KeeperView) updateTable() {
 	logger.Debug("Update Table on server")
 	err := k.t.c.PostData(context.TODO(), k.AddList)
 	if err != nil {
-		k.errorShow.SetText(fmt.Sprintf("Error while update Table, Post AddList: %s", err.Error()))
+		k.messageShow.SetText(
+			fmt.Sprintf("Error while update Table, Post AddList: %s", err.Error()),
+		)
 		k.t.err = err
 		logger.Errorf("Can't add data in add list:%w", err)
 		return
@@ -96,7 +98,7 @@ func (k *KeeperView) updateTable() {
 	k.AddList = make([]datas.Data, 0, 10)
 	err = k.t.c.UpdateData(context.TODO(), k.UpdateList)
 	if err != nil {
-		k.errorShow.SetText(
+		k.messageShow.SetText(
 			fmt.Sprintf("Error while update Table, Post UpdateList: %s", err.Error()),
 		)
 		k.t.err = err
@@ -105,7 +107,7 @@ func (k *KeeperView) updateTable() {
 	k.UpdateList = make([]datas.Data, 0, 10)
 	err = k.t.c.DeleteData(context.TODO(), k.DeleteList)
 	if err != nil {
-		k.errorShow.SetText(
+		k.messageShow.SetText(
 			fmt.Sprintf("Error while update Table, Post DeleteList: %s", err.Error()),
 		)
 		k.t.err = err
@@ -113,6 +115,7 @@ func (k *KeeperView) updateTable() {
 	}
 	k.DeleteList = make([]int, 0, 10)
 	k.setupTable()
+	k.messageShow.SetText("Data updated on server.")
 }
 
 func (k *KeeperView) getRow(row int) *datas.Data {

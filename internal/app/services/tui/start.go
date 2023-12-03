@@ -12,7 +12,7 @@ import (
 	"github.com/Nexadis/GophKeeper/internal/logger"
 )
 
-const HelloMessage = `Hello, this is GophKeeper - Application for save and modify your data.
+const HelloMessage = `Hello, this is GophKeeper - Application for saving and modifying your data.
 You can sign up in the system and your notes will be saved.`
 
 type LoginForm struct {

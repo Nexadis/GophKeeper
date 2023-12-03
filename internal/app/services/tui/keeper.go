@@ -19,10 +19,10 @@ type KeeperView struct {
 	UntouchedList []datas.Data
 
 	*tview.Flex
-	table      *tview.Table
-	changer    *tview.Form
-	errorShow  *tview.TextView
-	currentRow int
+	table       *tview.Table
+	changer     *tview.Form
+	messageShow *tview.TextView
+	currentRow  int
 }
 
 func (t *Tui) KeeperPage() (string, *KeeperView) {
@@ -78,13 +78,13 @@ func (t *Tui) KeeperPage() (string, *KeeperView) {
 
 	k.Flex = tview.NewFlex()
 
-	k.errorShow = tview.NewTextView()
-	k.errorShow.SetTitle("Status").SetBorder(true)
+	k.messageShow = tview.NewTextView()
+	k.messageShow.SetTitle("Status").SetBorder(true)
 
 	helper := k.setupKeyboard()
 	k.Flex.SetDirection(tview.FlexRow).
 		AddItem(editor, 0, 10, true).
-		AddItem(k.errorShow, 0, 1, false).
+		AddItem(k.messageShow, 0, 1, false).
 		AddItem(helper, 0, 3, false)
 	k.Flex.SetBorder(true).
 		SetTitle(title)
@@ -114,16 +114,29 @@ func (k *KeeperView) edit() {
 	}
 	row, _ := k.table.GetSelection()
 	data := k.getRow(row)
+	logger.Debugf("Got data=%v for editing", data)
 	if data == nil {
-		k.errorShow.SetText("Can't Get data type from cell: data not found")
+		k.messageShow.SetText(
+			"Can't Get data type from cell: data not found. Try to save, before edit",
+		)
+		return
+	}
+	if data.ID == 0 {
+		k.messageShow.SetText("Save edits before change them")
+		k.t.app.SetFocus(k.table)
 		return
 
 	}
 	k.changer.AddTextView("Type", data.Type.String(), 0, 0, false, false)
 	k.addEditors(data)
+	k.changer.AddTextArea("Description", data.Description, 0, 0, 0, nil)
 	k.changer.AddButton("Save", func() {
-		defer k.t.app.SetFocus(k.table)
-		k.saveEdit(data.ID)
+		err := k.saveEdit(data.ID, row)
+		if err != nil {
+			return
+		}
+		k.t.app.SetFocus(k.table)
+		k.messageShow.SetText("Data edited. Press ctrl+s before edit again.")
 		k.changer.Clear(true)
 		k.changer.Blur()
 	})
@@ -153,7 +166,7 @@ func (k *KeeperView) add() {
 		}
 		dtype, err := datas.ParseDataType(option)
 		if err != nil {
-			k.errorShow.SetText(fmt.Sprintf(
+			k.messageShow.SetText(fmt.Sprintf(
 				"Choosed invalid type: %s", err.Error(),
 			))
 			logger.Errorf("Choosed invalid type: %w", err)
@@ -161,13 +174,19 @@ func (k *KeeperView) add() {
 		k.changer.Clear(true)
 		k.addAdditions(dtype)
 		k.t.app.SetFocus(k.changer)
+		k.changer.AddTextArea("Description", "", 0, 0, 0, nil)
 		k.changer.AddButton("Save", func() {
-			defer k.t.app.SetFocus(k.table)
-			k.saveAdds(dtype)
+			err := k.saveAdds(dtype)
+			if err != nil {
+				return
+			}
+			k.t.app.SetFocus(k.table)
+			k.messageShow.SetText("Data added. Pres ctrl+s before edit.")
 			k.changer.Clear(true)
 		})
 		k.changer.AddButton("Cancel", func() {
 			defer k.t.app.SetFocus(k.table)
+			k.messageShow.SetText("")
 			k.changer.Clear(true)
 
 		})
@@ -191,12 +210,14 @@ func (k *KeeperView) delete() {
 	logger.Debugf("Cell %s", cell.Text)
 	id, err := strconv.Atoi(cell.Text)
 	if err != nil {
+		k.messageShow.SetText(fmt.Sprintf("Can't delete data %s", err.Error()))
 		logger.Errorf("Can't delete %d row = %s: %w", row, cell.Text, err)
 		return
 	}
 	k.table.RemoveRow(row)
 	k.DeleteList = append(k.DeleteList, id)
 	logger.Debugf("Delete row %d", row)
+	k.messageShow.SetText("Data deleted. Save it on server with ctrl+s.")
 }
 
 func (k *KeeperView) setupKeyboard() tview.Primitive {
@@ -304,22 +325,21 @@ func (k *KeeperView) addBankCardEditor(number, cardHolder, expire, cvvField stri
 }
 
 func (k *KeeperView) addBinEditor(bin string) {
-	k.changer.AddInputField(
+	k.changer.AddTextArea(
 		"Binary",
 		bin,
-		0,
-		nil,
+		0, 0, 0,
 		nil,
 	)
 
 }
 
 func (k *KeeperView) addTextEditor(text string) {
-	k.changer.AddInputField(
+	k.changer.AddTextArea(
 		"Text",
 		text,
-		0,
-		nil, nil)
+		0, 0, 0,
+		nil)
 
 }
 func (k *KeeperView) addCredsEditors(login, password string) {
@@ -328,7 +348,7 @@ func (k *KeeperView) addCredsEditors(login, password string) {
 
 }
 
-func (k *KeeperView) saveAdds(dtype datas.DataType) {
+func (k *KeeperView) saveAdds(dtype datas.DataType) error {
 	var value string
 	switch dtype {
 	case datas.CredentialsType:
@@ -337,11 +357,11 @@ func (k *KeeperView) saveAdds(dtype datas.DataType) {
 		creds := datas.NewCredentials(loginItem.GetText(), passwordItem.GetText())
 		value = creds.Value()
 	case datas.TextType:
-		textItem := k.changer.GetFormItemByLabel("Text").(*tview.InputField)
+		textItem := k.changer.GetFormItemByLabel("Text").(*tview.TextArea)
 		text := datas.NewText(textItem.GetText())
 		value = text.Value()
 	case datas.BinaryType:
-		binaryItem := k.changer.GetFormItemByLabel("Binary").(*tview.InputField)
+		binaryItem := k.changer.GetFormItemByLabel("Binary").(*tview.TextArea)
 		bin := datas.NewText(binaryItem.GetText())
 		value = bin.Value()
 	case datas.BankCardType:
@@ -351,8 +371,8 @@ func (k *KeeperView) saveAdds(dtype datas.DataType) {
 		cvvItem := k.changer.GetFormItemByLabel("CVV").(*tview.InputField)
 		cvv, err := strconv.Atoi(cvvItem.GetText())
 		if err != nil {
-			k.errorShow.SetText(fmt.Sprintf("Wrong CVV :%s", err.Error()))
-			return
+			k.messageShow.SetText(fmt.Sprintf("Wrong CVV :%s", err.Error()))
+			return err
 		}
 		bankCard, err := datas.NewBankCard(
 			numItem.GetText(),
@@ -361,23 +381,82 @@ func (k *KeeperView) saveAdds(dtype datas.DataType) {
 			cvv,
 		)
 		if err != nil {
-			k.errorShow.SetText(fmt.Sprintf("Wrong BankCard data:%s", err.Error()))
-			return
+			k.messageShow.SetText(fmt.Sprintf("Wrong BankCard data:%s", err.Error()))
+			return err
 		}
 		value = bankCard.Value()
 	}
 	d, err := datas.NewData(dtype, value)
 	if err != nil {
-		k.errorShow.SetText(fmt.Sprintf("Wrong data:%s", err.Error()))
-		return
+		k.messageShow.SetText(fmt.Sprintf("Wrong data:%s", err.Error()))
+		return err
 	}
+	desc := k.changer.GetFormItemByLabel("Description").(*tview.TextArea)
+	d.Description = desc.GetText()
+
 	k.AddList = append(k.AddList, *d)
 	rows := k.table.GetRowCount()
 	k.addRow(rows-1, *d)
+	return nil
 
 }
 
-func (k *KeeperView) saveEdit(id int) {
+func (k *KeeperView) saveEdit(id int, row int) error {
+	var data datas.Data
+	var value string
+	for _, d := range k.UntouchedList {
+		if d.ID == id {
+			data = d
+			break
+		}
+	}
+	switch data.Type {
+	case datas.CredentialsType:
+		loginItem := k.changer.GetFormItemByLabel("Login").(*tview.InputField)
+		passwordItem := k.changer.GetFormItemByLabel("Password").(*tview.InputField)
+		creds := datas.NewCredentials(loginItem.GetText(), passwordItem.GetText())
+		value = creds.Value()
+	case datas.TextType:
+		textItem := k.changer.GetFormItemByLabel("Text").(*tview.TextArea)
+		text := datas.NewText(textItem.GetText())
+		value = text.Value()
+	case datas.BinaryType:
+		binaryItem := k.changer.GetFormItemByLabel("Binary").(*tview.TextArea)
+		bin := datas.NewText(binaryItem.GetText())
+		value = bin.Value()
+	case datas.BankCardType:
+		numItem := k.changer.GetFormItemByLabel("Number").(*tview.InputField)
+		cardHolderItem := k.changer.GetFormItemByLabel("Card Holder").(*tview.InputField)
+		expireItem := k.changer.GetFormItemByLabel("Expire").(*tview.InputField)
+		cvvItem := k.changer.GetFormItemByLabel("CVV").(*tview.InputField)
+		cvv, err := strconv.Atoi(cvvItem.GetText())
+		if err != nil {
+			k.messageShow.SetText(fmt.Sprintf("Wrong CVV :%s", err.Error()))
+			return err
+		}
+		bankCard, err := datas.NewBankCard(
+			numItem.GetText(),
+			cardHolderItem.GetText(),
+			expireItem.GetText(),
+			cvv,
+		)
+		if err != nil {
+			k.messageShow.SetText(fmt.Sprintf("Wrong BankCard data:%s", err.Error()))
+			return err
+		}
+		value = bankCard.Value()
+	}
+	err := data.SetValue(value)
+	if err != nil {
+		k.messageShow.SetText(fmt.Sprintf("Wrong data:%s", err.Error()))
+		return err
+	}
+	desc := k.changer.GetFormItemByLabel("Description").(*tview.TextArea)
+	data.Description = desc.GetText()
+	k.addRow(row-1, data)
+
+	k.UpdateList = append(k.UpdateList, data)
+
 	logger.Debug("Save edits")
-	return
+	return nil
 }
