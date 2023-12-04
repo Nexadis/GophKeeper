@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -29,10 +30,11 @@ type DBConfig struct {
 }
 
 type ServerConfig struct {
-	Debug bool
-	HTTP  *HTTPServerConfig
-	DB    *DBConfig
-	Log   *LogConfig
+	Debug  bool
+	HTTP   *HTTPServerConfig
+	DB     *DBConfig
+	Log    *LogConfig
+	WarmUp time.Duration
 }
 
 type ClientConfig struct {
@@ -90,7 +92,7 @@ func loadServerDefaults() {
 	viper.SetDefault("log.outputs", []string{"stdout"})
 	viper.SetDefault("log.encoding", "json")
 
-	viper.SetDefault("crt", "server.crt")
+	viper.SetDefault("warmup", 0)
 
 	err := viper.WriteConfigAs("example_config.yaml")
 	if err != nil {

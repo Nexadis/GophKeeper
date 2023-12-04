@@ -25,6 +25,7 @@ func NewServer(c *config.ServerConfig) (*Server, error) {
 }
 
 func (s Server) Run(ctx context.Context) error {
+	time.Sleep(s.config.WarmUp)
 	dbctx, cancel := context.WithTimeout(
 		ctx,
 		time.Duration(s.config.DB.Timeout)*time.Second,
