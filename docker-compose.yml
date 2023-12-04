@@ -31,14 +31,29 @@ services:
       dockerfile: server.Dockerfile
     environment:
       - KEEPER_LOG_LEVEL=DEBUG
+      - KEEPER_DEBUG=1
+      - KEEPER_HTTP_ADDRESS=:8443
+      - KEEPER_HTTP_TLS=1
+      - KEEPER_HTTP_CRTFILE=/app/certs/server.crt
+      - KEEPER_HTTP_KEYFILE=/app/certs/server.key
+      - KEEPER_WARMUP=5s
     networks:
       - internal
     ports:
-      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - "./certs:/app/certs"
 
     depends_on:
       - postgres
       - flyway
+      - certs-creater
+
+  certs-creater:
+    image: nginx:1.25.3
+    command: ["openssl", "req", "-x509", "-sha256", "-nodes","-days", "365", "-newkey", "rsa:4096", "-subj", "/C=US/ST=Denial/L=Springfield/O=Dis/CN=localhost", "-addext", "subjectAltName = DNS:localhost", "-keyout", "/certs/server.key", "-out", "/certs/server.crt"]
+    volumes:
+      - "./certs:/certs"
 
 networks:
   internal:
