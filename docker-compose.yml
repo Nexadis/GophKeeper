@@ -51,7 +51,7 @@ services:
 
   certs-creater:
     image: nginx:1.25.3
-    command: ["openssl", "req", "-x509", "-sha256", "-nodes","-days", "365", "-newkey", "rsa:4096", "-subj", "/C=US/ST=Denial/L=Springfield/O=Dis/CN=localhost", "-addext", "subjectAltName = DNS:localhost", "-keyout", "/certs/server.key", "-out", "/certs/server.crt"]
+    command: bash -c 'openssl genrsa -out /certs/ca.key 2048; openssl req -new -x509 -days 365 -key /certs/ca.key -subj "/C=CN/ST=GD/L=SZ/O=Nexadis/CN=GophKeeper" -out /certs/ca.crt; openssl req -newkey rsa:2048 -nodes -keyout /certs/server.key -subj "/C=CN/ST=GD/L=SZ/O=Nexadis/CN=*.localhost" -out /certs/server.csr; openssl x509 -req -extfile <(printf "subjectAltName=DNS:localhost,DNS:www.localhost") -days 365 -in /certs/server.csr -CA /certs/ca.crt -CAkey /certs/ca.key -CAcreateserial -out /certs/server.crt'
     volumes:
       - "./certs:/certs"
 
