@@ -12,6 +12,7 @@ type Connection interface {
 	Login(ctx context.Context, login, password string) error
 	Register(ctx context.Context, login, password string) error
 	SetAddress(address string)
+	GetAddress() string
 	GetData(ctx context.Context) ([]datas.Data, error)
 	PostData(ctx context.Context, dlist []datas.Data) error
 	UpdateData(ctx context.Context, dlist []datas.Data) error

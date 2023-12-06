@@ -2,9 +2,12 @@ package http
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-resty/resty/v2"
 
@@ -18,9 +21,8 @@ var ErrUserExist = errors.New(`user with this login exist`)
 var ErrServerProblem = errors.New(`problem with server`)
 
 type Client struct {
-	config    *config.HTTPClientConfig
-	client    *resty.Client
-	authToken string
+	config *config.HTTPClientConfig
+	client *resty.Client
 }
 
 func NewClient(c *config.HTTPClientConfig) *Client {
@@ -28,20 +30,32 @@ func NewClient(c *config.HTTPClientConfig) *Client {
 	a := c.Address
 	c.Address = fmt.Sprintf("http://%s", a)
 	if c.TLS {
+		logger.Info("Use TLS")
 		c.Address = fmt.Sprintf("https://%s", a)
-		r.SetRootCertificate(c.CrtFile)
+		caCert, err := os.ReadFile(c.CrtFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		caCertPool := x509.NewCertPool()
+		ok := caCertPool.AppendCertsFromPEM(caCert)
+		if !ok {
+			logger.Error("Can't add cert to certpool")
+		}
+		r = r.SetRootCertificate(c.CrtFile)
 
 	}
 	return &Client{
 		c,
 		r,
-		"",
 	}
 
 }
 
 func (hc *Client) SetAddress(address string) {
 	hc.config.Address = address
+}
+func (hc *Client) GetAddress() string {
+	return hc.config.Address
 }
 
 func (hc *Client) Login(ctx context.Context, login, password string) error {
