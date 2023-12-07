@@ -59,12 +59,13 @@ func (hc *Client) GetAddress() string {
 }
 
 func (hc *Client) Login(ctx context.Context, login, password string) error {
+	u := User{
+		Login:    login,
+		Password: password,
+	}
 	resp, err := hc.client.R().
 		SetContext(ctx).
-		SetBody(User{
-			Login:    login,
-			Password: password,
-		}).
+		SetBody(u).
 		Post(hc.config.Address + APILogin)
 	if err != nil {
 		return fmt.Errorf("Problems with connection: %w", err)
@@ -74,7 +75,7 @@ func (hc *Client) Login(ctx context.Context, login, password string) error {
 		case http.StatusForbidden:
 			return fmt.Errorf("Can't auth: %w", ErrInvalidAuth)
 		case http.StatusBadRequest:
-			fallthrough
+			return fmt.Errorf("Can't auth, invalid request: %v", u)
 		case http.StatusInternalServerError:
 			return fmt.Errorf("Error on server %w: %s", ErrServerProblem, (resp.Body()))
 
@@ -89,12 +90,13 @@ func (hc *Client) Login(ctx context.Context, login, password string) error {
 
 }
 func (hc *Client) Register(ctx context.Context, login, password string) error {
+	u := User{
+		Login:    login,
+		Password: password,
+	}
 	resp, err := hc.client.R().
 		SetContext(ctx).
-		SetBody(User{
-			Login:    login,
-			Password: password,
-		}).
+		SetBody(u).
 		Post(hc.config.Address + APIRegister)
 	if err != nil {
 		return fmt.Errorf("Problems with connection: %w", err)
@@ -103,7 +105,7 @@ func (hc *Client) Register(ctx context.Context, login, password string) error {
 	case http.StatusConflict:
 		return fmt.Errorf("Can't create user %s: %w", login, ErrUserExist)
 	case http.StatusBadRequest:
-		fallthrough
+		return fmt.Errorf("Can't create user, invalid request: %v", u)
 	case http.StatusInternalServerError:
 		return fmt.Errorf("Error on server %w: %s", ErrServerProblem, (resp.Body()))
 	}
@@ -127,7 +129,7 @@ func (hc Client) GetData(ctx context.Context) ([]datas.Data, error) {
 	case http.StatusNotFound:
 		logger.Debug("User doesn't have data")
 	case http.StatusBadRequest:
-		fallthrough
+		return nil, fmt.Errorf("Can't fetch data of user")
 	case http.StatusInternalServerError:
 		return nil, fmt.Errorf("Can't get data: %w - %s", ErrServerProblem, (resp.Body()))
 
