@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Кнопки и запросы</title>
+</head>
+<body>
+    <form method="get" action="download/linux-GophKeeper" download="linux-GophKeeper">
+        <button type="submit">Download Linux client</button>
+    </form>
+    <form method="get" action="download/windows-GophKeeper" download="windows-GophKeeper">
+        <button type="submit">Download Windows client</button>
+    </form>
+    <form method="get" action="download/arm-linux-GophKeeper" download="arm-linux-GophKeeper">
+        <button type="submit">Download Mac OS client</button>
+    </form>
+    <form method="get" action="download/server.crt" download="server.crt">
+        <button type="submit">Download Certificate</button>
+        <p>Use it for https connections:</p>
+        <p>KEEPER_HTTP_TLS=1 KEEPER_HTTP_CRTFILE=server.crt KEEPER_HTTP_ADDRESS="localhost:8443" linux-GophKeeper</p>
+    </form>
+
+</body>
+</html>
+
