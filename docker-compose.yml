@@ -30,6 +30,7 @@ services:
     build:
       dockerfile: server.Dockerfile
     environment:
+      - VERSION=0.0.1
       - KEEPER_LOG_LEVEL=DEBUG
       - KEEPER_DEBUG=1
       - KEEPER_HTTP_ADDRESS=:8443
