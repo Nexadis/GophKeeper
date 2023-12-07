@@ -59,6 +59,8 @@ func (hs *Server) mountHandlers() {
 		},
 		),
 	)
+	hs.e.Static("/", hs.config.FrontDir)
+	hs.e.GET(APIDownload, hs.Download)
 	hs.e.POST(APIRegister, hs.Register)
 	hs.e.POST(APILogin, hs.Login)
 
@@ -88,17 +90,19 @@ func (hs *Server) mountHandlers() {
 }
 
 func (hs *Server) Run(ctx context.Context) error {
-	if hs.config.TLS {
-		return hs.e.StartTLS(hs.config.Address, hs.config.CrtFile, hs.config.KeyFile)
-	}
-	logger.Info("Server is running without TLS. Be careful, your password may be intercepted!")
 	ctx, cancel := context.WithCancel(ctx)
 
 	go func() {
+		var err error
 		defer cancel()
-		err := hs.e.Start(hs.config.Address)
+		if hs.config.TLS {
+			err = hs.e.StartTLS(hs.config.Address, hs.config.CrtFile, hs.config.KeyFile)
+		} else {
+			logger.Info("Server is running without TLS. Be careful, your password may be intercepted!")
+			err = hs.e.Start(hs.config.Address)
+		}
 		if err != nil {
-			logger.Error()
+			logger.Error(err)
 		}
 
 	}()

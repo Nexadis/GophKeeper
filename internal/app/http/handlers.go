@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo/v4"
 
@@ -12,6 +13,31 @@ import (
 	"github.com/Nexadis/GophKeeper/internal/logger"
 	"github.com/Nexadis/GophKeeper/internal/models/datas"
 )
+
+func (hs *Server) Download(c echo.Context) error {
+	filename := c.Param("file")
+	logger.Infof("Download %s", filename)
+	d, err := os.ReadDir(hs.config.ClientsDir)
+	if err != nil {
+		logger.Error("Directory isn't exist")
+	} else {
+		for _, v := range d {
+			logger.Info(v.Name())
+		}
+	}
+	switch filename {
+	case "linux-GophKeeper":
+		return c.File(hs.config.ClientsDir + "/linux-client")
+	case "windows-GophKeeper":
+		return c.File(hs.config.ClientsDir + "/windows-client")
+	case "arm-linux-GophKeeper":
+		return c.File(hs.config.ClientsDir + "/arm-linux-client")
+	case "server.crt":
+		return c.File(hs.config.CrtFile)
+	default:
+		return c.NoContent(http.StatusNotFound)
+	}
+}
 
 func (hs *Server) Register(c echo.Context) error {
 	u := &User{}
