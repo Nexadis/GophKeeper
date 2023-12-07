@@ -10,12 +10,14 @@ import (
 )
 
 type HTTPServerConfig struct {
-	Up        bool
-	Address   string
-	JWTSecret []byte
-	TLS       bool
-	CrtFile   string
-	KeyFile   string
+	Up         bool
+	Address    string
+	JWTSecret  []byte
+	TLS        bool
+	CrtFile    string
+	KeyFile    string
+	ClientsDir string
+	FrontDir   string
 }
 
 type HTTPClientConfig struct {
@@ -80,10 +82,12 @@ func loadServerDefaults() {
 	viper.SetDefault("debug", false)
 
 	viper.SetDefault("http.up", true)
-	viper.SetDefault("http.address", ":8080")
-	viper.SetDefault("http.tls", false)
+	viper.SetDefault("http.address", ":8443")
+	viper.SetDefault("http.tls", true)
 	viper.SetDefault("http.crtfile", "server.crt")
 	viper.SetDefault("http.keyfile", "server.key")
+	viper.SetDefault("http.frontdir", "frontend")
+	viper.SetDefault("http.clientsdir", "clients")
 
 	viper.SetDefault("db.uri", "postgresql://root:root@postgres:5432/keeper")
 	viper.SetDefault("db.timeout", 10)
@@ -104,8 +108,8 @@ func loadServerDefaults() {
 func loadClientDefaults() {
 	viper.SetDefault("debug", false)
 
-	viper.SetDefault("http.address", "localhost:8080")
-	viper.SetDefault("http.tls", false)
+	viper.SetDefault("http.address", "localhost:8443")
+	viper.SetDefault("http.tls", true)
 	viper.SetDefault("http.crtfile", "server.crt")
 	viper.SetDefault("http.retries", 5)
 
