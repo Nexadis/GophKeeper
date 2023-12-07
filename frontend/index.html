@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Кнопки и запросы</title>
+    <title>GophKeeper</title>
 </head>
 <body>
     <form method="get" action="download/linux-GophKeeper" download="linux-GophKeeper">
@@ -15,8 +15,8 @@
     </form>
     <form method="get" action="download/server.crt" download="server.crt">
         <button type="submit">Download Certificate</button>
-        <p>Use it for https connections:</p>
-        <p>KEEPER_HTTP_TLS=1 KEEPER_HTTP_CRTFILE=server.crt KEEPER_HTTP_ADDRESS="localhost:8443" linux-GophKeeper</p>
+        <p>Подключиться к серверу через https можно запустив клиент:</p>
+        <p>KEEPER_HTTP_TLS=1 KEEPER_HTTP_CRTFILE=server.crt KEEPER_HTTP_ADDRESS="localhost:8443" ./linux-GophKeeper</p>
     </form>
 
 </body>
