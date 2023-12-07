@@ -15,6 +15,9 @@ import (
 const HelloMessage = `Hello, this is GophKeeper - Application for saving and modifying your data.
 You can sign up in the system and your notes will be saved.`
 
+var Version string
+var BuildTime string
+
 type LoginForm struct {
 	*tview.Form
 	errorShow *tview.TextView
@@ -74,7 +77,11 @@ func (t *Tui) SignPage() (string, *LoginForm) {
 }
 
 func (t *Tui) IntroPage(text string) (string, tview.Primitive) {
-	title := "Hello"
+	if Version == "" {
+		Version = "latest"
+	}
+
+	title := fmt.Sprintf("GophKeeper v %s %s", Version, BuildTime)
 
 	textView := tview.NewTextView().SetWordWrap(true).SetChangedFunc(func() {
 		t.app.Draw()
