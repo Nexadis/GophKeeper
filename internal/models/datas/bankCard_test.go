@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestData_SetBankCard(t *testing.T) {
@@ -29,9 +31,15 @@ func TestData_SetBankCard(t *testing.T) {
 			true,
 		},
 		{
-			"Invalid Number",
+			"Invalid len Number",
 			&Data{},
 			args{"1;name;time;123"},
+			true,
+		},
+		{
+			"Invalid Number",
+			&Data{},
+			args{"notnum;name;time;123"},
 			true,
 		},
 		{
@@ -76,7 +84,7 @@ func TestData_BankCardValues(t *testing.T) {
 			Type:  BankCardType,
 			Value: "1234 1234 1234 1234;Name;11/11;123",
 		},
-		"1234 1234 1234 1234",
+		"1234123412341234",
 		"Name",
 		"11/11",
 		123,
@@ -105,85 +113,17 @@ func TestData_BankCardValues(t *testing.T) {
 	}
 }
 
-func Test_validateNumber(t *testing.T) {
-	type args struct {
-		number string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := validateNumber(tt.args.number)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validateNumber() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("validateNumber() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_parseExpire(t *testing.T) {
-	type args struct {
-		expire string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    time.Time
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseExpire(tt.args.expire)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("parseExpire() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("parseExpire() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_validateCVV(t *testing.T) {
-	type args struct {
-		CVV int
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := validateCVV(tt.args.CVV); (err != nil) != tt.wantErr {
-				t.Errorf("validateCVV() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func Test_bankCard_Type(t *testing.T) {
 	tests := []struct {
 		name string
 		bk   bankCard
 		want DataType
 	}{
-		// TODO: Add test cases.
+		{
+			"Check Type",
+			bankCard{},
+			BankCardType,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -207,7 +147,55 @@ func TestNewBankCard(t *testing.T) {
 		want    *bankCard
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			"Invalid number",
+			args{
+				"1",
+				"holder",
+				"11/11",
+				123,
+			},
+			nil,
+			true,
+		},
+		{
+			"Invalid cvv",
+			args{
+				"1234 1234 1234 1234",
+				"holder",
+				"11/11",
+				120921384,
+			},
+			nil,
+			true,
+		},
+		{
+			"Invalid expire",
+			args{
+				"1234 1234 1234 1234",
+				"holder",
+				"Never",
+				123,
+			},
+			nil,
+			true,
+		},
+		{
+			"Valid Card",
+			args{
+				"1234 1234 1234 1234",
+				"holder",
+				"11/11",
+				123,
+			},
+			&bankCard{
+				number:     "1234123412341234",
+				cardHolder: "holder",
+				expire:     time.Date(2011, time.November, 1, 0, 0, 0, 0, time.UTC),
+				cvv:        123,
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -216,9 +204,13 @@ func TestNewBankCard(t *testing.T) {
 				t.Errorf("NewBankCard() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewBankCard() = %v, want %v", got, tt.want)
+			if err != nil {
+				return
 			}
+			assert.Equal(t, tt.want.number, got.number)
+			assert.Equal(t, tt.want.cardHolder, got.cardHolder)
+			assert.Equal(t, tt.want.expire, got.expire)
+			assert.Equal(t, tt.want.cvv, got.cvv)
 		})
 	}
 }
@@ -228,8 +220,16 @@ func Test_bankCard_Value(t *testing.T) {
 		name string
 		bc   bankCard
 		want string
-	}{
-		// TODO: Add test cases.
+	}{{
+		"Just show",
+		bankCard{
+			number:     "1234123412341234",
+			cardHolder: "holder",
+			expire:     time.Date(11, time.November, 1, 0, 0, 0, 0, time.Local),
+			cvv:        123,
+		},
+		"1234123412341234;holder;11/11;123",
+	},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
