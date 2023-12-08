@@ -21,6 +21,7 @@ var (
 	ErrCardInvalidFormat = errors.New("can't parse card info")
 )
 
+// SetBankCard - валидирует значения из строки и если всё нормально, то записывает их в структуру Data
 func (d *Data) SetBankCard(value string) error {
 	b := bankCard{}
 	err := b.SetValue(value)
@@ -31,6 +32,7 @@ func (d *Data) SetBankCard(value string) error {
 	return nil
 }
 
+// BankCardValues - парсит значение Value и возвращает все данные банковской карты по отдельности
 func (d *Data) BankCardValues() (number, cardHolder, expire string, cvv int) {
 	b := bankCard{}
 	b.SetValue(d.Value)
@@ -49,10 +51,7 @@ type bankCard struct {
 	cvv        int
 }
 
-func (bk bankCard) Type() DataType {
-	return BankCardType
-}
-
+// NewBankCard - валидирует данные и создает структуру с данными банковской карты
 func NewBankCard(number, cardHolder, expire string, cvv int) (*bankCard, error) {
 	bc := bankCard{}
 	number, err := bc.validateNumber(number)
@@ -75,6 +74,7 @@ func NewBankCard(number, cardHolder, expire string, cvv int) (*bankCard, error) 
 	return &bc, nil
 }
 
+// Value - возвращает все данные банковской карты в виде строки
 func (bc bankCard) Value() string {
 	return fmt.Sprintf(
 		bankCardFormat,
@@ -85,6 +85,7 @@ func (bc bankCard) Value() string {
 	)
 }
 
+// SetValue - валидирует данные из строки и изменяет структуру внутри согласно данным
 func (bc *bankCard) SetValue(value string) error {
 	bc.editNow()
 	values := strings.Split(value, bankCardsep)

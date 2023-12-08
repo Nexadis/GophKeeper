@@ -113,27 +113,6 @@ func TestData_BankCardValues(t *testing.T) {
 	}
 }
 
-func Test_bankCard_Type(t *testing.T) {
-	tests := []struct {
-		name string
-		bk   bankCard
-		want DataType
-	}{
-		{
-			"Check Type",
-			bankCard{},
-			BankCardType,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.bk.Type(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("bankCard.Type() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestNewBankCard(t *testing.T) {
 	type args struct {
 		number     string
