@@ -50,7 +50,7 @@ func (c *credentials) SetValue(value string) error {
 func (d *Data) SetCredentials(value string) error {
 	d.editNow()
 	c := credentials{}
-	err := c.SetValue(d.Value)
+	err := c.SetValue(value)
 	if err != nil {
 		return fmt.Errorf("%w: %q", ErrCredsInvalidFormat, value)
 	}
