@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseDataType(t *testing.T) {
@@ -16,7 +18,36 @@ func TestParseDataType(t *testing.T) {
 		want    DataType
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			"Parse BankCard",
+			args{"Bank Card"},
+			BankCardType,
+			false,
+		},
+		{
+			"Parse Binary",
+			args{"Binary"},
+			BinaryType,
+			false,
+		},
+		{
+			"Parse Credentials",
+			args{"Credentials"},
+			CredentialsType,
+			false,
+		},
+		{
+			"Parse Text",
+			args{"Text"},
+			TextType,
+			false,
+		},
+		{
+			"Invalid type",
+			args{"Invalid"},
+			-1,
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -25,7 +56,7 @@ func TestParseDataType(t *testing.T) {
 				t.Errorf("ParseDataType() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if got != tt.want {
 				t.Errorf("ParseDataType() = %v, want %v", got, tt.want)
 			}
 		})
@@ -43,7 +74,54 @@ func TestNewData(t *testing.T) {
 		want    *Data
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			"Valid Text",
+			args{
+				TextType,
+				"text",
+			},
+			&Data{
+				Type:  TextType,
+				Value: "text",
+			},
+			false,
+		},
+		{
+			"Valid Bank Card",
+			args{
+				BankCardType,
+				"1234 1234 1234 1234;holder;11/11;123",
+			},
+			&Data{
+				Type:  BankCardType,
+				Value: "1234 1234 1234 1234;holder;11/11;123",
+			},
+			false,
+		},
+		{
+			"Valid Binary",
+			args{
+				BinaryType,
+				"3131",
+			},
+			&Data{
+				Type:  BinaryType,
+				Value: "3131",
+			},
+			false,
+		},
+		{
+			"Valid Credentials",
+			args{
+				CredentialsType,
+				"login;password",
+			},
+			&Data{
+				Type:  CredentialsType,
+				Value: "login;password",
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -52,20 +130,28 @@ func TestNewData(t *testing.T) {
 				t.Errorf("NewData() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewData() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want.Type, got.Type)
+			assert.Equal(t, tt.want.Value, got.Value)
 		})
 	}
 }
 
 func TestData_SetValue(t *testing.T) {
+	type fields struct {
+		ID          int
+		UserID      int
+		Type        DataType
+		Description string
+		CreatedAt   time.Time
+		EditedAt    time.Time
+		Value       string
+	}
 	type args struct {
 		value string
 	}
 	tests := []struct {
 		name    string
-		d       *Data
+		fields  fields
 		args    args
 		wantErr bool
 	}{
@@ -73,7 +159,16 @@ func TestData_SetValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.d.SetValue(tt.args.value); (err != nil) != tt.wantErr {
+			d := &Data{
+				ID:          tt.fields.ID,
+				UserID:      tt.fields.UserID,
+				Type:        tt.fields.Type,
+				Description: tt.fields.Description,
+				CreatedAt:   tt.fields.CreatedAt,
+				EditedAt:    tt.fields.EditedAt,
+				Value:       tt.fields.Value,
+			}
+			if err := d.SetValue(tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("Data.SetValue() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -81,15 +176,33 @@ func TestData_SetValue(t *testing.T) {
 }
 
 func TestData_editNow(t *testing.T) {
+	type fields struct {
+		ID          int
+		UserID      int
+		Type        DataType
+		Description string
+		CreatedAt   time.Time
+		EditedAt    time.Time
+		Value       string
+	}
 	tests := []struct {
-		name string
-		d    *Data
+		name   string
+		fields fields
 	}{
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.d.editNow()
+			d := &Data{
+				ID:          tt.fields.ID,
+				UserID:      tt.fields.UserID,
+				Type:        tt.fields.Type,
+				Description: tt.fields.Description,
+				CreatedAt:   tt.fields.CreatedAt,
+				EditedAt:    tt.fields.EditedAt,
+				Value:       tt.fields.Value,
+			}
+			d.editNow()
 		})
 	}
 }
@@ -127,155 +240,30 @@ func TestDataType_String(t *testing.T) {
 	}
 }
 
-func Test_metaData_ID(t *testing.T) {
-	tests := []struct {
-		name string
-		md   metaData
-		want int
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.md.ID(); got != tt.want {
-				t.Errorf("metaData.ID() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_metaData_SetID(t *testing.T) {
-	type args struct {
-		id int
-	}
-	tests := []struct {
-		name string
-		md   *metaData
-		args args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.md.SetID(tt.args.id)
-		})
-	}
-}
-
-func Test_metaData_UserID(t *testing.T) {
-	tests := []struct {
-		name string
-		md   metaData
-		want int
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.md.UserID(); got != tt.want {
-				t.Errorf("metaData.UserID() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_metaData_SetUserID(t *testing.T) {
-	type args struct {
-		id int
-	}
-	tests := []struct {
-		name string
-		md   *metaData
-		args args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.md.SetUserID(tt.args.id)
-		})
-	}
-}
-
-func Test_metaData_Description(t *testing.T) {
-	tests := []struct {
-		name string
-		md   metaData
-		want string
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.md.Description(); got != tt.want {
-				t.Errorf("metaData.Description() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_metaData_SetDescription(t *testing.T) {
-	type args struct {
-		desc string
-	}
-	tests := []struct {
-		name string
-		md   *metaData
-		args args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.md.SetDescription(tt.args.desc)
-		})
-	}
-}
-
-func Test_metaData_CreatedAt(t *testing.T) {
-	tests := []struct {
-		name string
-		md   metaData
-		want time.Time
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.md.CreatedAt(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("metaData.CreatedAt() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_metaData_EditedAt(t *testing.T) {
-	tests := []struct {
-		name string
-		md   metaData
-		want time.Time
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.md.EditedAt(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("metaData.EditedAt() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func Test_metaData_editNow(t *testing.T) {
+	type fields struct {
+		id        int
+		userID    int
+		desc      string
+		createdAt time.Time
+		editedAt  time.Time
+	}
 	tests := []struct {
-		name string
-		md   *metaData
+		name   string
+		fields fields
 	}{
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.md.editNow()
+			md := &metaData{
+				id:        tt.fields.id,
+				userID:    tt.fields.userID,
+				desc:      tt.fields.desc,
+				createdAt: tt.fields.createdAt,
+				editedAt:  tt.fields.editedAt,
+			}
+			md.editNow()
 		})
 	}
 }
