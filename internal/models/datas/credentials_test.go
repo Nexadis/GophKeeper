@@ -1,26 +1,11 @@
 package datas
 
 import (
-	"reflect"
 	"testing"
-)
+	"time"
 
-func Test_credentials_Type(t *testing.T) {
-	tests := []struct {
-		name string
-		c    credentials
-		want DataType
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.c.Type(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("credentials.Type() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+	"github.com/stretchr/testify/assert"
+)
 
 func TestNewCredentials(t *testing.T) {
 	type args struct {
@@ -32,70 +17,122 @@ func TestNewCredentials(t *testing.T) {
 		args args
 		want *credentials
 	}{
-		// TODO: Add test cases.
+		{
+			"Create credentials",
+			args{
+				"login",
+				"password",
+			},
+			&credentials{
+				login:    "login",
+				password: "password",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewCredentials(tt.args.login, tt.args.password); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewCredentials() = %v, want %v", got, tt.want)
-			}
+			got := NewCredentials(tt.args.login, tt.args.password)
+			assert.Equal(
+				t,
+				tt.want.login,
+				got.login,
+			)
+			assert.Equal(
+				t,
+				tt.want.password,
+				got.password,
+			)
 		})
 	}
 }
 
 func Test_credentials_Value(t *testing.T) {
+	type fields struct {
+		metaData metaData
+		login    string
+		password string
+	}
 	tests := []struct {
-		name string
-		c    credentials
-		want string
+		name   string
+		fields fields
+		want   string
 	}{
-		// TODO: Add test cases.
+		{
+			"Create credentials",
+			fields{
+				metaData{},
+				"login",
+				"password",
+			},
+			"login;password",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.c.Value(); got != tt.want {
+			c := credentials{
+				metaData: tt.fields.metaData,
+				login:    tt.fields.login,
+				password: tt.fields.password,
+			}
+			if got := c.Value(); got != tt.want {
 				t.Errorf("credentials.Value() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_credentials_SetValue(t *testing.T) {
-	type args struct {
-		value string
-	}
-	tests := []struct {
-		name    string
-		c       *credentials
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.c.SetValue(tt.args.value); (err != nil) != tt.wantErr {
-				t.Errorf("credentials.SetValue() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestData_SetCredentials(t *testing.T) {
+	type fields struct {
+		ID          int
+		UserID      int
+		Type        DataType
+		Description string
+		CreatedAt   time.Time
+		EditedAt    time.Time
+		Value       string
+	}
 	type args struct {
 		value string
 	}
 	tests := []struct {
 		name    string
-		d       *Data
+		fields  fields
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			"Not splitable",
+			fields{},
+			args{"invalid credentials"},
+			true,
+		},
+		{
+			"Too much splits",
+			fields{},
+			args{"login;password;something"},
+			true,
+		},
+		{
+			"Valid value",
+			fields{
+				Value: "login;password",
+			},
+			args{"login;password"},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.d.SetCredentials(tt.args.value); (err != nil) != tt.wantErr {
+			d := &Data{
+				ID:          tt.fields.ID,
+				UserID:      tt.fields.UserID,
+				Type:        tt.fields.Type,
+				Description: tt.fields.Description,
+				CreatedAt:   tt.fields.CreatedAt,
+				EditedAt:    tt.fields.EditedAt,
+				Value:       tt.fields.Value,
+			}
+			if err := d.SetCredentials(tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("Data.SetCredentials() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -103,22 +140,51 @@ func TestData_SetCredentials(t *testing.T) {
 }
 
 func TestData_CredentialsValues(t *testing.T) {
+	type fields struct {
+		ID          int
+		UserID      int
+		Type        DataType
+		Description string
+		CreatedAt   time.Time
+		EditedAt    time.Time
+		Value       string
+	}
 	tests := []struct {
 		name         string
-		d            *Data
+		fields       fields
 		wantLogin    string
 		wantPassword string
 	}{
-		// TODO: Add test cases.
+		{
+			"Parse Value",
+			fields{
+				Value: "login;password",
+			},
+			"login",
+			"password",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotLogin, gotPassword := tt.d.CredentialsValues()
+			d := &Data{
+				ID:          tt.fields.ID,
+				UserID:      tt.fields.UserID,
+				Type:        tt.fields.Type,
+				Description: tt.fields.Description,
+				CreatedAt:   tt.fields.CreatedAt,
+				EditedAt:    tt.fields.EditedAt,
+				Value:       tt.fields.Value,
+			}
+			gotLogin, gotPassword := d.CredentialsValues()
 			if gotLogin != tt.wantLogin {
 				t.Errorf("Data.CredentialsValues() gotLogin = %v, want %v", gotLogin, tt.wantLogin)
 			}
 			if gotPassword != tt.wantPassword {
-				t.Errorf("Data.CredentialsValues() gotPassword = %v, want %v", gotPassword, tt.wantPassword)
+				t.Errorf(
+					"Data.CredentialsValues() gotPassword = %v, want %v",
+					gotPassword,
+					tt.wantPassword,
+				)
 			}
 		})
 	}
