@@ -12,7 +12,6 @@ import (
 const defaultCost = bcrypt.DefaultCost
 
 type UserRepo interface {
-	GetUserByID(ctx context.Context, id int) (*users.User, error)
 	GetUserByName(ctx context.Context, username string) (*users.User, error)
 	AddUser(ctx context.Context, u *users.User) error
 	DeleteUser(ctx context.Context, username string) error

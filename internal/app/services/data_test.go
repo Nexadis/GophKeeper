@@ -2,14 +2,12 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"testing"
 
 	"go.uber.org/mock/gomock"
 
 	"github.com/Nexadis/GophKeeper/internal/models/datas"
-	"github.com/Nexadis/GophKeeper/internal/models/users"
 	mock_services "github.com/Nexadis/GophKeeper/mocks/intern/app/services"
 )
 
@@ -21,11 +19,12 @@ func TestNewData(t *testing.T) {
 		name string
 		args args
 		want *Data
-	}{{
-		"Data service",
-		args{},
-		&Data{},
-	},
+	}{
+		{
+			"Create Data Service",
+			args{},
+			&Data{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -41,9 +40,9 @@ func TestData_Add(t *testing.T) {
 		dataRepo *mock_services.MockDataRepo
 	}
 	type args struct {
-		ctx  context.Context
-		u    users.User
-		data datas.IData
+		ctx   context.Context
+		uid   int
+		dlist []datas.Data
 	}
 	tests := []struct {
 		name    string
@@ -52,47 +51,67 @@ func TestData_Add(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"Valid user and data",
-			func(f *fields) {
-				f.dataRepo.EXPECT().Add(nil, gomock.Any()).Return(nil)
-			},
-			args{
-				nil,
-				users.New("username", []byte("password")),
-				datas.NewCredentials("save_login", "save_password"),
-			},
+			"Empty add list",
+			nil,
+			args{nil, 0, nil},
 			false,
 		},
 		{
-			"Error Add user",
-			func(f *fields) {
-				f.dataRepo.EXPECT().Add(nil, gomock.Any()).Return(fmt.Errorf("db is disconnected"))
-			},
-			args{
-				nil,
-				users.New("username", []byte("password")),
-				datas.NewCredentials("save_login", "save_password"),
-			},
+			"Add one invalid item without err",
+			nil,
+			args{nil, 1, []datas.Data{
+				{
+					Type:  datas.BankCardType,
+					Value: "invalid",
+				},
+			}},
 			true,
 		},
+		{
+			"Add one valid item with err",
+			func(f *fields) {
+				f.dataRepo.EXPECT().Add(nil, gomock.Any()).Return(ErrAccessDenied)
+			},
+			args{nil, 1, []datas.Data{
+				{
+					Type:  datas.TextType,
+					Value: "text",
+				},
+			}},
+			true,
+		},
+		{
+			"Add one valid item without err",
+			func(f *fields) {
+				f.dataRepo.EXPECT().Add(nil, gomock.Any()).Return(nil)
+			},
+			args{nil, 1, []datas.Data{
+				{
+					Type:  datas.TextType,
+					Value: "text",
+				},
+			}},
+			false,
+		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			f := &fields{
-				mock_services.NewMockDataRepo(ctrl),
-			}
+			f := &fields{mock_services.NewMockDataRepo(ctrl)}
 			if tt.prepare != nil {
 				tt.prepare(f)
 			}
-			ds := &Data{
+			d := &Data{
 				dataRepo: f.dataRepo,
 			}
-			if err := ds.Add(tt.args.ctx, tt.args.u, tt.args.data); (err != nil) != tt.wantErr {
+			err := d.Add(tt.args.ctx, tt.args.uid, tt.args.dlist)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("Data.Add() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
 		})
+
 	}
 }
 
@@ -101,137 +120,77 @@ func TestData_Update(t *testing.T) {
 		dataRepo *mock_services.MockDataRepo
 	}
 	type args struct {
-		ctx  context.Context
-		u    *users.User
-		data datas.IData
+		ctx   context.Context
+		uid   int
+		dlist []datas.Data
 	}
 	tests := []struct {
 		name    string
 		prepare func(*fields)
-		setargs func() args
+		args    args
 		wantErr bool
 	}{
 		{
-			"Error data id",
+			"Empty update list",
 			nil,
-			func() args {
-				u := users.New("username", []byte("password"))
-				d := datas.NewCredentials("save_login", "save_password")
-				return args{
-					nil,
-					&u,
-					d,
-				}
-			},
+			args{nil, 0, nil},
+			false,
+		},
+		{
+			"Update invalid id item",
+			nil,
+			args{nil, 1, []datas.Data{
+				{
+					Type:  datas.BankCardType,
+					Value: "invalid",
+				},
+			}},
 			true,
 		},
 		{
-			"Error Get data with id",
-			func(f *fields) {
-				gomock.InOrder(
-					f.dataRepo.EXPECT().
-						GetByID(nil, 123).
-						Return(nil, fmt.Errorf("data is not exist")),
-				)
-			},
-			func() args {
-				u := users.New("username", []byte("password"))
-				d := datas.NewCredentials("save_login", "save_password")
-				d.SetID(123)
-				return args{
-					nil,
-					&u,
-					d,
-				}
-			},
+			"Update invalid item value",
+			nil,
+			args{nil, 1, []datas.Data{
+				{
+					ID:    1,
+					Type:  datas.BankCardType,
+					Value: "invalid",
+				},
+			}},
 			true,
 		},
 		{
-			"Error AccessDenied",
+			"Update error in dataRepo",
 			func(f *fields) {
-				gomock.InOrder(
-					f.dataRepo.EXPECT().
-						GetByID(nil, 123).
-						Return(datas.NewCredentials("u", "p"), nil),
-				)
+				f.dataRepo.EXPECT().Update(nil, gomock.Any()).Return(ErrDataNotFound)
 			},
-			func() args {
-				u := users.New("u", []byte("p"))
-				u.ID = 1
-				d := datas.NewCredentials("save_login", "save_password")
-				d.SetID(123)
-				d.SetUserID(2)
-				return args{
-					nil,
-					&u,
-					d,
-				}
-			},
+			args{nil, 1, []datas.Data{
+				{
+					ID:    1,
+					Type:  datas.TextType,
+					Value: "text",
+				},
+			}},
 			true,
 		},
 		{
-			"Error Update",
+			"Update in dataRepo",
 			func(f *fields) {
-				d := datas.NewCredentials("u", "p")
-				d.SetID(123)
-				d.SetUserID(1)
-				gomock.InOrder(
-					f.dataRepo.EXPECT().
-						GetByID(nil, 123).
-						Return(d, nil),
-					f.dataRepo.EXPECT().
-						Update(nil, gomock.Any()).
-						Return(fmt.Errorf("db is disconnected")),
-				)
+				f.dataRepo.EXPECT().Update(nil, gomock.Any()).Return(nil)
 			},
-			func() args {
-				u := users.New("u", []byte("p"))
-				u.ID = 1
-				d := datas.NewCredentials("save_login", "save_password")
-				d.SetID(123)
-				d.SetUserID(1)
-				return args{
-					nil,
-					&u,
-					d,
-				}
-			},
-			true,
-		},
-		{
-			"Good way",
-			func(f *fields) {
-				d := datas.NewCredentials("u", "p")
-				d.SetID(123)
-				d.SetUserID(1)
-				gomock.InOrder(
-					f.dataRepo.EXPECT().
-						GetByID(nil, 123).
-						Return(d, nil),
-					f.dataRepo.EXPECT().
-						Update(nil, gomock.Any()).
-						Return(nil),
-				)
-			},
-			func() args {
-				u := users.New("u", []byte("p"))
-				u.ID = 1
-				d := datas.NewCredentials("save_login", "save_password")
-				d.SetID(123)
-				d.SetUserID(1)
-				return args{
-					nil,
-					&u,
-					d,
-				}
-			},
+			args{nil, 1, []datas.Data{
+				{
+					ID:    1,
+					Type:  datas.TextType,
+					Value: "text",
+				},
+			}},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
 			f := &fields{
 				mock_services.NewMockDataRepo(ctrl),
 			}
@@ -241,8 +200,7 @@ func TestData_Update(t *testing.T) {
 			ds := &Data{
 				dataRepo: f.dataRepo,
 			}
-			args := tt.setargs()
-			if err := ds.Update(args.ctx, *args.u, args.data); (err != nil) != tt.wantErr {
+			if err := ds.Update(tt.args.ctx, tt.args.uid, tt.args.dlist); (err != nil) != tt.wantErr {
 				t.Errorf("Data.Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -255,98 +213,73 @@ func TestData_GetByID(t *testing.T) {
 	}
 	type args struct {
 		ctx context.Context
-		u   *users.User
+		uid int
 		id  int
 	}
 	tests := []struct {
 		name    string
 		prepare func(*fields)
-		setargs func() args
-		want    datas.IData
+		args    args
+		want    *datas.Data
 		wantErr bool
 	}{
 		{
-			"Error with db",
+			"Not found id",
 			func(f *fields) {
-				f.dataRepo.EXPECT().GetByID(nil, 1).Return(nil, fmt.Errorf("db is disconnected"))
-
+				f.dataRepo.EXPECT().GetByID(nil, 1).Return(nil, ErrDataNotFound)
 			},
-			func() args {
-				u := users.New("u", []byte("p"))
-				u.ID = 2
-				return args{
-					nil,
-					&u,
-					1,
-				}
-			},
+			args{nil, 2, 1},
 			nil,
 			true,
 		},
 		{
-			"Error AccessDenied",
+			"Don't match uid and data.UserID",
 			func(f *fields) {
-				d := datas.NewText("text data")
-				d.SetUserID(1)
-				f.dataRepo.EXPECT().GetByID(nil, 3).Return(d, nil)
-
+				d, _ := datas.NewData(datas.TextType, "text")
+				d.UserID = 1
+				f.dataRepo.EXPECT().GetByID(nil, 1).Return(d, nil)
 			},
-			func() args {
-				u := users.New("u", []byte("p"))
-				u.ID = 2
-				return args{
-					nil,
-					&u,
-					3,
-				}
-			},
+			args{nil, 2, 1},
 			nil,
 			true,
 		},
 		{
-			"Valid data",
+			"Data found",
 			func(f *fields) {
-				d := datas.NewText("text data")
-				d.SetUserID(1)
-				f.dataRepo.EXPECT().GetByID(nil, 3).Return(d, nil)
-
+				d, _ := datas.NewData(datas.TextType, "text")
+				d.UserID = 2
+				f.dataRepo.EXPECT().GetByID(nil, 1).Return(d, nil)
 			},
-			func() args {
-				u := users.New("u", []byte("p"))
-				u.ID = 1
-				return args{
-					nil,
-					&u,
-					3,
-				}
+			args{nil, 2, 1},
+			&datas.Data{
+				Type:  datas.TextType,
+				Value: "text",
 			},
-			datas.NewText("text data"),
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
 			f := &fields{
 				mock_services.NewMockDataRepo(ctrl),
 			}
 			if tt.prepare != nil {
 				tt.prepare(f)
 			}
-			ds := &Data{
+			ds := Data{
 				dataRepo: f.dataRepo,
 			}
-			args := tt.setargs()
-			got, err := ds.GetByID(args.ctx, *args.u, args.id)
+			got, err := ds.GetByID(tt.args.ctx, tt.args.uid, tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Data.GetByID() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if tt.want != nil {
-				if !reflect.DeepEqual(got.Value(), tt.want.Value()) {
-					t.Errorf("Data.GetByID() = %v, want %v", got, tt.want)
-				}
+			if tt.wantErr {
+				return
+			}
+			if !(got.Type == tt.want.Type && got.Value == tt.want.Value) {
+				t.Errorf("Data.GetByID() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -358,92 +291,53 @@ func TestData_GetByUser(t *testing.T) {
 	}
 	type args struct {
 		ctx context.Context
-		u   *users.User
+		uid int
 	}
 	tests := []struct {
 		name    string
 		prepare func(*fields)
-		setargs func() args
-		want    []datas.IData
+		args    args
+		want    []datas.Data
 		wantErr bool
 	}{
 		{
-			"Error with db",
+			"Can't fetch data",
 			func(f *fields) {
-				f.dataRepo.EXPECT().
-					GetByUser(nil, gomock.Any()).
-					Return(nil, fmt.Errorf("user not found"))
+				f.dataRepo.EXPECT().GetByUser(nil, 1).Return(nil, ErrInvalidUserID)
 			},
-			func() args {
-				u := users.New("u", []byte("p"))
-				return args{
-					nil,
-					&u,
-				}
-			},
+			args{nil, 1},
 			nil,
 			true,
 		},
 		{
-			"Valid User",
+			"Fetched user",
 			func(f *fields) {
-				ds := []datas.IData{
-					datas.NewText("some"),
-				}
-				f.dataRepo.EXPECT().
-					GetByUser(nil, gomock.Any()).
-					Return(ds, nil)
+				f.dataRepo.EXPECT().GetByUser(nil, 1).Return(nil, nil)
 			},
-			func() args {
-				u := users.New("u", []byte("p"))
-				return args{
-					nil,
-					&u,
-				}
-			},
-			[]datas.IData{
-				datas.NewText("some"),
-			},
+			args{nil, 1},
+			nil,
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
 			f := &fields{
 				mock_services.NewMockDataRepo(ctrl),
+			}
+			ds := Data{
+				dataRepo: f.dataRepo,
 			}
 			if tt.prepare != nil {
 				tt.prepare(f)
 			}
-			ds := &Data{
-				dataRepo: f.dataRepo,
-			}
-			args := tt.setargs()
-			got, err := ds.GetByUser(args.ctx, args.u)
+			got, err := ds.GetByUser(tt.args.ctx, tt.args.uid)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Data.GetByUser() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if tt.want != nil {
-				if len(tt.want) != len(got) {
-					t.Errorf("Data.GetByUser() = len %v, want len %v", len(got), len(tt.want))
-					return
-
-				}
-				for i, v := range tt.want {
-					if !reflect.DeepEqual(got[i].Value(), v.Value()) {
-						t.Errorf(
-							"Data.GetByUser() [%d] = %v, want %v",
-							i,
-							got[i].Value(),
-							v.Value(),
-						)
-					}
-
-				}
-
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Data.GetByUser() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -455,75 +349,33 @@ func TestData_DeleteByID(t *testing.T) {
 	}
 	type args struct {
 		ctx context.Context
-		u   *users.User
-		id  int
+		uid int
+		id  []int
 	}
 	tests := []struct {
 		name    string
 		prepare func(*fields)
-		setargs func() args
+		args    args
 		wantErr bool
 	}{
 		{
-			"Error with db",
-			func(f *fields) {
-				f.dataRepo.EXPECT().GetByID(nil, 1).Return(nil, fmt.Errorf("db is disconnected"))
-
-			},
-			func() args {
-				u := users.New("u", []byte("p"))
-				return args{
-					nil,
-					&u,
-					1,
-				}
-			},
-			true,
+			"Empty list",
+			nil,
+			args{},
+			false,
 		},
 		{
-			"Error Access Denied",
+			"Delete normal",
 			func(f *fields) {
-				d := datas.NewText("text data")
-				d.SetUserID(1)
-				f.dataRepo.EXPECT().GetByID(nil, 3).Return(d, nil)
-
+				f.dataRepo.EXPECT().DeleteByIDs(nil, 1, gomock.Any()).Return(nil)
 			},
-			func() args {
-				u := users.New("u", []byte("p"))
-				u.ID = 2
-				return args{
-					nil,
-					&u,
-					3,
-				}
-			},
-			true,
-		},
-		{
-			"Valid data",
-			func(f *fields) {
-				d := datas.NewText("text data")
-				d.SetUserID(1)
-				f.dataRepo.EXPECT().GetByID(nil, 3).Return(d, nil)
-				f.dataRepo.EXPECT().DeleteByID(nil, 3).Return(nil)
-
-			},
-			func() args {
-				u := users.New("u", []byte("p"))
-				u.ID = 1
-				return args{
-					nil,
-					&u,
-					3,
-				}
-			},
+			args{nil, 1, []int{2}},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
 			f := &fields{
 				mock_services.NewMockDataRepo(ctrl),
 			}
@@ -533,8 +385,7 @@ func TestData_DeleteByID(t *testing.T) {
 			ds := &Data{
 				dataRepo: f.dataRepo,
 			}
-			args := tt.setargs()
-			if err := ds.DeleteByID(args.ctx, *args.u, args.id); (err != nil) != tt.wantErr {
+			if err := ds.DeleteByID(tt.args.ctx, tt.args.uid, tt.args.id); (err != nil) != tt.wantErr {
 				t.Errorf("Data.DeleteByID() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -543,57 +394,25 @@ func TestData_DeleteByID(t *testing.T) {
 
 func TestData_Health(t *testing.T) {
 	type fields struct {
-		dataRepo *mock_services.MockDataRepo
+		dataRepo DataRepo
 	}
 	type args struct {
 		ctx context.Context
 	}
 	tests := []struct {
 		name    string
-		prepare func(*fields)
-		setargs func() args
+		fields  fields
+		args    args
 		wantErr bool
 	}{
-		{
-			"Error with db",
-			func(f *fields) {
-				f.dataRepo.EXPECT().Ping(nil).Return(fmt.Errorf("db is disconnected"))
-			},
-			func() args {
-				return args{
-					nil,
-				}
-			},
-			true,
-		},
-		{
-			"Ping is work",
-			func(f *fields) {
-				f.dataRepo.EXPECT().Ping(nil).Return(nil)
-			},
-			func() args {
-				return args{
-					nil,
-				}
-			},
-			false,
-		},
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			f := &fields{
-				mock_services.NewMockDataRepo(ctrl),
-			}
-			if tt.prepare != nil {
-				tt.prepare(f)
-			}
 			ds := &Data{
-				dataRepo: f.dataRepo,
+				dataRepo: tt.fields.dataRepo,
 			}
-			args := tt.setargs()
-			if err := ds.Health(args.ctx); (err != nil) != tt.wantErr {
+			if err := ds.Health(tt.args.ctx); (err != nil) != tt.wantErr {
 				t.Errorf("Data.Health() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

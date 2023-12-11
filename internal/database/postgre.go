@@ -190,9 +190,6 @@ func (pg *PgDB) DeleteByIDs(ctx context.Context, uid int, ids []int) error {
 func (pg *PgDB) Ping(ctx context.Context) error {
 	return pg.db.Ping(ctx)
 }
-func (pg *PgDB) GetUserByID(ctx context.Context, id int) (*users.User, error) {
-	return nil, nil
-}
 func (pg *PgDB) GetUserByName(ctx context.Context, username string) (*users.User, error) {
 	query := `SELECT id,username,hash,created_at FROM users WHERE username=@username`
 	args := pgx.NamedArgs{
