@@ -16,7 +16,10 @@ func Init(c *config.LogConfig) error {
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = c.Outputs
 	cfg.Level = lvl
-	cfg.Encoding = c.Encoding
+	if c.Encoding != "" {
+		cfg.Encoding = c.Encoding
+
+	}
 	l, err := cfg.Build(zap.AddCallerSkip(1))
 	if err != nil {
 		return err
@@ -33,4 +36,14 @@ func Error(args ...interface{}) {
 }
 func Debug(args ...interface{}) {
 	logger.Debug(args...)
+}
+
+func Infof(template string, args ...interface{}) {
+	logger.Infof(template, args...)
+}
+func Errorf(template string, args ...interface{}) {
+	logger.Errorf(template, args...)
+}
+func Debugf(template string, args ...interface{}) {
+	logger.Debugf(template, args...)
 }

@@ -1,8 +1,9 @@
-package httpserver
+package http
 
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -40,6 +41,17 @@ func setToken(c echo.Context, token string) {
 	resp := echo.NewResponse(c.Response().Writer, c.Echo())
 	resp.Header().Add(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", token))
 	c.SetResponse(resp)
+}
+
+func getToken(header http.Header) string {
+	auth := header.Get(echo.HeaderAuthorization)
+	var token string
+	_, err := fmt.Sscanf(auth, "Bearer %s", &token)
+	if err != nil {
+		logger.Error(fmt.Errorf("Can't get Token from response: %w", err))
+		return ""
+	}
+	return token
 }
 
 func GetUID(c echo.Context) (int, error) {

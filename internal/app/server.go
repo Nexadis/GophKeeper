@@ -6,18 +6,18 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/Nexadis/GophKeeper/internal/app/httpserver"
+	"github.com/Nexadis/GophKeeper/internal/app/http"
 	"github.com/Nexadis/GophKeeper/internal/app/services"
 	"github.com/Nexadis/GophKeeper/internal/config"
 	"github.com/Nexadis/GophKeeper/internal/database"
 )
 
 type Server struct {
-	config *config.AppConfig
-	http   *httpserver.Server
+	config *config.ServerConfig
+	http   *http.Server
 }
 
-func NewServer(c *config.AppConfig) (*Server, error) {
+func NewServer(c *config.ServerConfig) (*Server, error) {
 	s := Server{
 		config: c,
 	}
@@ -37,7 +37,7 @@ func (s Server) Run(ctx context.Context) error {
 	as := services.NewAuth(repo, services.NewHash())
 	ds := services.NewData(repo)
 	if s.config.HTTP.Up {
-		s.http = httpserver.New(s.config.HTTP, ds, as)
+		s.http = http.New(s.config.HTTP, ds, as)
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)

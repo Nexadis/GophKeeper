@@ -56,3 +56,11 @@ func (d *Data) SetCredentials(value string) error {
 	d.Value = value
 	return nil
 }
+
+func (d *Data) CredentialsValues() (login string, password string) {
+	c := credentials{}
+	c.SetValue(d.Value)
+	login = c.login
+	password = c.password
+	return
+}

@@ -37,6 +37,9 @@ func NewData(drepo DataRepo) *Data {
 }
 
 func (ds *Data) Add(ctx context.Context, uid int, dlist []datas.Data) error {
+	if len(dlist) == 0 {
+		return nil
+	}
 	for i, d := range dlist {
 		err := dlist[i].SetValue(d.Value)
 		if err != nil {
@@ -55,6 +58,9 @@ func (ds *Data) Add(ctx context.Context, uid int, dlist []datas.Data) error {
 }
 
 func (ds *Data) Update(ctx context.Context, uid int, dlist []datas.Data) error {
+	if len(dlist) == 0 {
+		return nil
+	}
 	for i, d := range dlist {
 		if d.ID == 0 {
 			return ErrInvalidDataID
@@ -99,6 +105,9 @@ func (ds Data) GetByUser(ctx context.Context, uid int) ([]datas.Data, error) {
 }
 
 func (ds *Data) DeleteByID(ctx context.Context, uid int, id []int) error {
+	if len(id) == 0 {
+		return nil
+	}
 	return ds.dataRepo.DeleteByIDs(ctx, uid, id)
 }
 

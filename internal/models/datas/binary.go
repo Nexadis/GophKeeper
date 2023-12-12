@@ -1,7 +1,7 @@
 package datas
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 )
 
@@ -24,12 +24,12 @@ func NewBinary(data []byte) *binary {
 }
 
 func (b binary) Value() string {
-	return base64.StdEncoding.EncodeToString(b.data)
+	return hex.EncodeToString(b.data)
 }
 
 func (b *binary) SetValue(value string) error {
 	b.editNow()
-	data, err := base64.StdEncoding.DecodeString(value)
+	data, err := hex.DecodeString(value)
 	if err != nil {
 		return fmt.Errorf(ErrBinaryInvalidValue, err)
 	}
@@ -40,6 +40,10 @@ func (b *binary) SetValue(value string) error {
 
 func (d *Data) SetBinary(value string) error {
 	d.editNow()
-	_, err := base64.StdEncoding.DecodeString(value)
-	return err
+	_, err := hex.DecodeString(value)
+	if err != nil {
+		return err
+	}
+	d.Value = value
+	return nil
 }

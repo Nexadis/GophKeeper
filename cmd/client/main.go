@@ -11,18 +11,15 @@ import (
 )
 
 func main() {
-	c := config.MustServerConfig()
+	c := config.MustClientConfig()
 	logger.Init(c.Log)
-	a, err := app.NewServer(c)
-	if err != nil {
-		logger.Error(err)
-		return
-	}
+	a := app.NewClient(c)
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 	defer cancel()
 
-	err = a.Run(ctx)
+	err := a.Run(ctx)
 	if err != nil {
 		logger.Error(err)
 	}
+
 }
