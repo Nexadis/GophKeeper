@@ -11,23 +11,27 @@ import (
 
 const defaultCost = bcrypt.DefaultCost
 
+// UserRepo - позволяет работать с данными пользователей
 type UserRepo interface {
 	GetUserByName(ctx context.Context, username string) (*users.User, error)
 	AddUser(ctx context.Context, u *users.User) error
 	DeleteUser(ctx context.Context, username string) error
 }
 
+// Hasher - интерфейс для работы с паролем пользователя
 type Hasher interface {
 	Auth(ctx context.Context, u users.User, password string) error
 	Password(password string) ([]byte, error)
 }
 
+// Auth - служба для авторизации пользователя
 type Auth struct {
 	userRepo UserRepo
 	hasher   Hasher
 	cost     int
 }
 
+// NewAuth - создаёт службу с заданными зависимостями
 func NewAuth(urepo UserRepo, h Hasher) *Auth {
 	cost := defaultCost
 	return &Auth{
@@ -37,10 +41,8 @@ func NewAuth(urepo UserRepo, h Hasher) *Auth {
 	}
 }
 
-func (a *Auth) UserRegister(
-	ctx context.Context,
-	username, password string,
-) (*users.User, error) {
+// UserRegister - регистрирует нового пользователя в системе
+func (a *Auth) UserRegister(ctx context.Context, username, password string) (*users.User, error) {
 	if !a.validUsername(username) {
 		return nil, ErrInvalidUsername
 	}
@@ -59,10 +61,8 @@ func (a *Auth) UserRegister(
 	return &u, nil
 }
 
-func (a *Auth) UserLogin(
-	ctx context.Context,
-	username, password string,
-) (*users.User, error) {
+// UserLogin - авторизует пользователя в системе
+func (a *Auth) UserLogin(ctx context.Context, username, password string) (*users.User, error) {
 	u, err := a.userRepo.GetUserByName(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("can't login user %s : %w", username, err)
@@ -88,10 +88,12 @@ func (a Auth) validUsername(username string) bool {
 	return true
 }
 
+// Password - преобразует пароль в форму для записи
 func (h Hash) Password(password string) ([]byte, error) {
 	return bcrypt.GenerateFromPassword([]byte(password), h.cost)
 }
 
+// Auth - проверяет пароль на валидность для данного пользователя
 func (h Hash) Auth(ctx context.Context, u users.User, password string) error {
 	return bcrypt.CompareHashAndPassword(u.Hash, []byte(password))
 }

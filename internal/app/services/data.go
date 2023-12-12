@@ -17,6 +17,7 @@ var (
 	ErrAccessDenied    = errors.New("access denied")
 )
 
+// DataRepo - интерфейс для работы с данными
 type DataRepo interface {
 	Add(ctx context.Context, datas []datas.Data) error
 	GetByID(ctx context.Context, id int) (*datas.Data, error)
@@ -26,16 +27,19 @@ type DataRepo interface {
 	Ping(ctx context.Context) error
 }
 
+// Data - служит в качестве службы работы с данными
 type Data struct {
 	dataRepo DataRepo
 }
 
+// NewData - создаёт новый экземпляр службы, работающей с репозиторием
 func NewData(drepo DataRepo) *Data {
 	return &Data{
 		drepo,
 	}
 }
 
+// Add - Добавляет полученные данные
 func (ds *Data) Add(ctx context.Context, uid int, dlist []datas.Data) error {
 	if len(dlist) == 0 {
 		return nil
@@ -57,6 +61,7 @@ func (ds *Data) Add(ctx context.Context, uid int, dlist []datas.Data) error {
 	return nil
 }
 
+// Update - обновляет полученные данные
 func (ds *Data) Update(ctx context.Context, uid int, dlist []datas.Data) error {
 	if len(dlist) == 0 {
 		return nil
@@ -80,6 +85,7 @@ func (ds *Data) Update(ctx context.Context, uid int, dlist []datas.Data) error {
 	return nil
 }
 
+// GetByID - возвращает данные с заданным id, принадлежащие заданному пользователю
 func (ds Data) GetByID(ctx context.Context, uid int, id int) (*datas.Data, error) {
 	d, err := ds.dataRepo.GetByID(ctx, id)
 	if err != nil {
@@ -96,6 +102,7 @@ func (ds Data) GetByID(ctx context.Context, uid int, id int) (*datas.Data, error
 	return d, nil
 }
 
+// GetByUser - возвращает все данные принадлежащие пользователю
 func (ds Data) GetByUser(ctx context.Context, uid int) ([]datas.Data, error) {
 	datas, err := ds.dataRepo.GetByUser(ctx, uid)
 	if err != nil {
@@ -111,6 +118,7 @@ func (ds *Data) DeleteByID(ctx context.Context, uid int, id []int) error {
 	return ds.dataRepo.DeleteByIDs(ctx, uid, id)
 }
 
+// Health - проверяет коректность работы службы
 func (ds *Data) Health(ctx context.Context) error {
 	err := ds.dataRepo.Ping(ctx)
 	if err != nil {

@@ -23,11 +23,13 @@ var ErrUserExist = errors.New("user is exist")
 var ErrUserNotFound = errors.New("user not found")
 var ErrDataNotFound = errors.New("data not found")
 
+// PgDB - структура для работы с БД
 type PgDB struct {
 	db *pgxpool.Pool
 	c  *config.DBConfig
 }
 
+// Connect - выполняет подключение к БД
 func Connect(ctx context.Context, c *config.DBConfig) (*PgDB, error) {
 	db, err := pgxpool.New(ctx, c.URI)
 	if err != nil {
@@ -44,6 +46,7 @@ func (pg *PgDB) Close() {
 	pg.db.Close()
 }
 
+// Add - добавляет новые данные, полученные в слайсе
 func (pg *PgDB) Add(ctx context.Context, dlist []datas.Data) error {
 	query := `INSERT INTO datas (
 	user_id,
@@ -87,6 +90,8 @@ func (pg *PgDB) Add(ctx context.Context, dlist []datas.Data) error {
 	return results.Close()
 
 }
+
+// GetByID - Возвращает данные с заданным id
 func (pg *PgDB) GetByID(ctx context.Context, id int) (*datas.Data, error) {
 	query := `SELECT id,user_id,dtype,description, value, created_at, edited_at FROM datas WHERE id=@id`
 	args := pgx.NamedArgs{
@@ -106,6 +111,8 @@ func (pg *PgDB) GetByID(ctx context.Context, id int) (*datas.Data, error) {
 	return &d, nil
 
 }
+
+// GetByUser - Возвращает все записи, приндлежащие пользователю с uid
 func (pg *PgDB) GetByUser(ctx context.Context, uid int) ([]datas.Data, error) {
 	query := `SELECT * FROM datas WHERE user_id=@user_id`
 	args := pgx.NamedArgs{
@@ -134,6 +141,8 @@ func (pg *PgDB) GetByUser(ctx context.Context, uid int) ([]datas.Data, error) {
 	)
 
 }
+
+// Update - обновляет записи из переданного слайса
 func (pg *PgDB) Update(ctx context.Context, dlist []datas.Data) error {
 	query := "UPDATE datas SET value=@value, edited_at=@edited_at, description=@description WHERE id=@id AND user_id=@user_id"
 	batch := &pgx.Batch{}
@@ -164,6 +173,8 @@ func (pg *PgDB) Update(ctx context.Context, dlist []datas.Data) error {
 	}
 	return results.Close()
 }
+
+// DeleteByIDs - удаляет все записи с передаными id для пользователя с заданными uid
 func (pg *PgDB) DeleteByIDs(ctx context.Context, uid int, ids []int) error {
 	query := `DELETE FROM datas WHERE id=@id AND user_id=@uid`
 	batch := &pgx.Batch{}
@@ -187,9 +198,13 @@ func (pg *PgDB) DeleteByIDs(ctx context.Context, uid int, ids []int) error {
 	logger.Debug(fmt.Sprintf("Data deleted by request of uid=%d", uid))
 	return results.Close()
 }
+
+// Ping - проверяет доступ к БД
 func (pg *PgDB) Ping(ctx context.Context) error {
 	return pg.db.Ping(ctx)
 }
+
+// GetUserByName - возращает информацию о пользователе по имени
 func (pg *PgDB) GetUserByName(ctx context.Context, username string) (*users.User, error) {
 	query := `SELECT id,username,hash,created_at FROM users WHERE username=@username`
 	args := pgx.NamedArgs{
@@ -216,6 +231,7 @@ func (pg *PgDB) GetUserByName(ctx context.Context, username string) (*users.User
 	return &u, nil
 }
 
+// AddUser - добавляет пользователя в БД
 func (pg *PgDB) AddUser(ctx context.Context, u *users.User) error {
 	query := `INSERT INTO users (username, hash, created_at) VALUES (@username, @hash, @created_at) RETURNING id`
 	args := pgx.NamedArgs{

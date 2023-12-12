@@ -12,17 +12,20 @@ import (
 	"github.com/Nexadis/GophKeeper/internal/logger"
 )
 
+// HelloMessage - приветственное сообщение пользователя
 const HelloMessage = `Hello, this is GophKeeper - Application for saving and modifying your data.
 You can sign up in the system and your notes will be saved.`
 
 var Version string
 var BuildTime string
 
+// LoginForm - форма для авторизации на сервере
 type LoginForm struct {
 	*tview.Form
 	errorShow *tview.TextView
 }
 
+// SignPage - отрисовывает и обрабатывает форму входа и регистрации пользователя в системе
 func (t *Tui) SignPage() (string, *LoginForm) {
 	title := "Sign In/Sign Up"
 	l := &LoginForm{}
@@ -76,6 +79,7 @@ func (t *Tui) SignPage() (string, *LoginForm) {
 
 }
 
+// IntroPage - выводит приветственное сообщение для пользователя
 func (t *Tui) IntroPage(text string) (string, tview.Primitive) {
 	if Version == "" {
 		Version = "latest"

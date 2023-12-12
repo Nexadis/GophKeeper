@@ -11,6 +11,7 @@ import (
 	"github.com/Nexadis/GophKeeper/internal/models/datas"
 )
 
+// KeeperView - Основное окно для работы с данными пользователя
 type KeeperView struct {
 	t             *Tui
 	UpdateList    []datas.Data
@@ -25,6 +26,7 @@ type KeeperView struct {
 	currentRow  int
 }
 
+// KeeperPage - создаёт окно для работы с данными пользователя
 func (t *Tui) KeeperPage() (string, *KeeperView) {
 	title := "Goph Keeper"
 	k := KeeperView{}

@@ -25,6 +25,7 @@ type Client struct {
 	client *resty.Client
 }
 
+// NewClient - Создаёт клиента для подключения к серверу по HTTP/HTTPS
 func NewClient(c *config.HTTPClientConfig) *Client {
 	r := resty.New()
 	a := c.Address

@@ -9,28 +9,33 @@ import (
 	"github.com/spf13/viper"
 )
 
+// HTTPServerConfig - конфиг HTTP сервера
 type HTTPServerConfig struct {
-	Up         bool
-	Address    string
-	JWTSecret  []byte
-	TLS        bool
-	CrtFile    string
-	KeyFile    string
-	ClientsDir string
-	FrontDir   string
+	Up         bool   // Up - запускать ли HTTP-сервер
+	Address    string // Address - адрес на котором сервер ждет подключений
+	JWTSecret  []byte // JWTSecret - секрет для JWT
+	TLS        bool   // TLS - использовать ли TLS
+	CrtFile    string // CrtFile - путь до сертификата сервера
+	KeyFile    string // KeyFile - путь до ключа сервера
+	ClientsDir string // ClientsDir - директория с скомпилированными клиентами под разные архитектуры
+	FrontDir   string // FrontDir - директория с Frontend'ом
 }
 
+// HTTPClientConfig - конфиг HTTP клиента
 type HTTPClientConfig struct {
-	Address string
-	TLS     bool
-	CrtFile string
-	Retries int
+	Address string // Address - адрес подключения к серверу
+	TLS     bool   // TLS - использовать ли TLS
+	CrtFile string // CrtFile - путь до сертификата сервера для доверенного подключения
+	Retries int    // Retries - количество повторных попыток для подключения
 }
+
+// DBConfig - конфиг для подключения к БД
 type DBConfig struct {
 	URI     string
 	Timeout int64
 }
 
+// ServerConfig - общий конфиг сервера, независимо от транспорта
 type ServerConfig struct {
 	Debug  bool
 	HTTP   *HTTPServerConfig
@@ -39,6 +44,7 @@ type ServerConfig struct {
 	WarmUp time.Duration
 }
 
+// ClientConfig - общий конфиг клиента, независимо от транспорта
 type ClientConfig struct {
 	Debug bool
 	Log   *LogConfig
@@ -51,6 +57,7 @@ type LogConfig struct {
 	Encoding string
 }
 
+// MustServerConfig - создаёт конфиг сервера и определяет его из значений по умолчанию, файла с конфигом и переменных окружения
 func MustServerConfig() *ServerConfig {
 	loadServerDefaults()
 	loadConfig("server")
@@ -65,6 +72,7 @@ func MustServerConfig() *ServerConfig {
 	return &c
 }
 
+// MustClientConfig - создаёт конфиг клиента и определяет его из значений по умолчанию, файла с конфигом и переменных окружения
 func MustClientConfig() *ClientConfig {
 	loadClientDefaults()
 	loadConfig("client")

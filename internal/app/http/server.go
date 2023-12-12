@@ -17,6 +17,7 @@ import (
 	"github.com/Nexadis/GophKeeper/internal/logger"
 )
 
+// Server - HTTP сервер
 type Server struct {
 	config      *config.HTTPServerConfig
 	e           *echo.Echo
@@ -24,6 +25,7 @@ type Server struct {
 	authService *services.Auth
 }
 
+// New - создаёт http сервер
 func New(c *config.HTTPServerConfig, d *services.Data, a *services.Auth) *Server {
 	e := echo.New()
 	hs := &Server{
@@ -89,6 +91,7 @@ func (hs *Server) mountHandlers() {
 
 }
 
+// Run - запускает HTTP сервер
 func (hs *Server) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 
