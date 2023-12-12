@@ -1,0 +1,6 @@
+crt: server.crt
+db:
+    uri: postgresql://root:root@postgres:5432/keeper
+debug: false
+http:
+    address: :8080
