@@ -2,23 +2,60 @@ package datas
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func TestTextType(t *testing.T) {
-	b := NewText("my text")
-	assert.NotEmpty(t, b)
-	assert.Equal(t, TextType, b.Type())
+func TestNewText(t *testing.T) {
+	type args struct {
+		data string
+	}
+	tests := []struct {
+		name string
+		args args
+		want *text
+	}{
+		{
+			"New valid text",
+			args{"text"},
+			&text{data: "text"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewText(tt.args.data); got.data != tt.want.data {
+				t.Errorf("NewText() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
 
-func TestTextSetValue(t *testing.T) {
-	b := NewText("my text")
-	assert.NotEmpty(t, b)
-	val := b.Value()
-	err := b.SetValue(val)
-	assert.NoError(t, err)
-	assert.Equal(t, val, b.Value())
-	err = b.SetValue("new text")
-	assert.NoError(t, err)
+func Test_text_Value(t *testing.T) {
+	type fields struct {
+		metaData metaData
+		data     string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			"Show text",
+			fields{
+				metaData{},
+				"text",
+			},
+			"text",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tr := text{
+				metaData: tt.fields.metaData,
+				data:     tt.fields.data,
+			}
+			if got := tr.Value(); got != tt.want {
+				t.Errorf("text.Value() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

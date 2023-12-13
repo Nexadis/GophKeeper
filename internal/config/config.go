@@ -4,37 +4,47 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
 
+// HTTPServerConfig - конфиг HTTP сервера
 type HTTPServerConfig struct {
-	Up        bool
-	Address   string
-	JWTSecret []byte
-	TLS       bool
-	CrtFile   string
-	KeyFile   string
+	Up         bool   // Up - запускать ли HTTP-сервер
+	Address    string // Address - адрес на котором сервер ждет подключений
+	JWTSecret  []byte // JWTSecret - секрет для JWT
+	TLS        bool   // TLS - использовать ли TLS
+	CrtFile    string // CrtFile - путь до сертификата сервера
+	KeyFile    string // KeyFile - путь до ключа сервера
+	ClientsDir string // ClientsDir - директория с скомпилированными клиентами под разные архитектуры
+	FrontDir   string // FrontDir - директория с Frontend'ом
 }
 
+// HTTPClientConfig - конфиг HTTP клиента
 type HTTPClientConfig struct {
-	Address string
-	TLS     bool
-	CrtFile string
-	Retries int
+	Address string // Address - адрес подключения к серверу
+	TLS     bool   // TLS - использовать ли TLS
+	CrtFile string // CrtFile - путь до сертификата сервера для доверенного подключения
+	Retries int    // Retries - количество повторных попыток для подключения
 }
+
+// DBConfig - конфиг для подключения к БД
 type DBConfig struct {
 	URI     string
 	Timeout int64
 }
 
+// ServerConfig - общий конфиг сервера, независимо от транспорта
 type ServerConfig struct {
-	Debug bool
-	HTTP  *HTTPServerConfig
-	DB    *DBConfig
-	Log   *LogConfig
+	Debug  bool
+	HTTP   *HTTPServerConfig
+	DB     *DBConfig
+	Log    *LogConfig
+	WarmUp time.Duration
 }
 
+// ClientConfig - общий конфиг клиента, независимо от транспорта
 type ClientConfig struct {
 	Debug bool
 	Log   *LogConfig
@@ -47,6 +57,7 @@ type LogConfig struct {
 	Encoding string
 }
 
+// MustServerConfig - создаёт конфиг сервера и определяет его из значений по умолчанию, файла с конфигом и переменных окружения
 func MustServerConfig() *ServerConfig {
 	loadServerDefaults()
 	loadConfig("server")
@@ -61,6 +72,7 @@ func MustServerConfig() *ServerConfig {
 	return &c
 }
 
+// MustClientConfig - создаёт конфиг клиента и определяет его из значений по умолчанию, файла с конфигом и переменных окружения
 func MustClientConfig() *ClientConfig {
 	loadClientDefaults()
 	loadConfig("client")
@@ -78,10 +90,12 @@ func loadServerDefaults() {
 	viper.SetDefault("debug", false)
 
 	viper.SetDefault("http.up", true)
-	viper.SetDefault("http.address", ":8080")
-	viper.SetDefault("http.tls", false)
+	viper.SetDefault("http.address", ":8443")
+	viper.SetDefault("http.tls", true)
 	viper.SetDefault("http.crtfile", "server.crt")
 	viper.SetDefault("http.keyfile", "server.key")
+	viper.SetDefault("http.frontdir", "frontend")
+	viper.SetDefault("http.clientsdir", "clients")
 
 	viper.SetDefault("db.uri", "postgresql://root:root@postgres:5432/keeper")
 	viper.SetDefault("db.timeout", 10)
@@ -90,7 +104,7 @@ func loadServerDefaults() {
 	viper.SetDefault("log.outputs", []string{"stdout"})
 	viper.SetDefault("log.encoding", "json")
 
-	viper.SetDefault("crt", "server.crt")
+	viper.SetDefault("warmup", 0)
 
 	err := viper.WriteConfigAs("example_config.yaml")
 	if err != nil {
@@ -102,8 +116,8 @@ func loadServerDefaults() {
 func loadClientDefaults() {
 	viper.SetDefault("debug", false)
 
-	viper.SetDefault("http.address", "localhost:8080")
-	viper.SetDefault("http.tls", false)
+	viper.SetDefault("http.address", "localhost:8443")
+	viper.SetDefault("http.tls", true)
 	viper.SetDefault("http.crtfile", "server.crt")
 	viper.SetDefault("http.retries", 5)
 

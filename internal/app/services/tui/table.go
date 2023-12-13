@@ -53,15 +53,18 @@ func (k *KeeperView) setHeaderTable() {
 	tableTypeTop := tview.NewTableCell("Type").
 		SetTextColor(tcell.ColorYellow).
 		SetAlign(tview.AlignCenter).
-		SetSelectable(false)
+		SetSelectable(false).
+		SetExpansion(1)
 	tableValueTop := tview.NewTableCell("Value").
 		SetTextColor(tcell.ColorDarkCyan).
 		SetAlign(tview.AlignCenter).
-		SetSelectable(false)
+		SetSelectable(false).
+		SetExpansion(1)
 	tableDescTop := tview.NewTableCell("Description").
 		SetTextColor(tcell.ColorDarkCyan).
 		SetAlign(tview.AlignCenter).
-		SetSelectable(false)
+		SetSelectable(false).
+		SetExpansion(1)
 	k.table.SetCell(0, CollumnID, tableIDTop)
 	k.table.SetCell(0, CollumnType, tableTypeTop)
 	k.table.SetCell(0, CollumnValue, tableValueTop)

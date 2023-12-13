@@ -12,11 +12,13 @@ import (
 	"github.com/Nexadis/GophKeeper/internal/database"
 )
 
+// Server - структура для работы с сервером
 type Server struct {
 	config *config.ServerConfig
 	http   *http.Server
 }
 
+// NewServer - создаёт сервер с заданным конфигом
 func NewServer(c *config.ServerConfig) (*Server, error) {
 	s := Server{
 		config: c,
@@ -24,7 +26,9 @@ func NewServer(c *config.ServerConfig) (*Server, error) {
 	return &s, nil
 }
 
+// Run - запускает сервер
 func (s Server) Run(ctx context.Context) error {
+	time.Sleep(s.config.WarmUp)
 	dbctx, cancel := context.WithTimeout(
 		ctx,
 		time.Duration(s.config.DB.Timeout)*time.Second,

@@ -30,15 +30,31 @@ services:
     build:
       dockerfile: server.Dockerfile
     environment:
+      - VERSION=0.0.1
       - KEEPER_LOG_LEVEL=DEBUG
+      - KEEPER_DEBUG=1
+      - KEEPER_HTTP_ADDRESS=:8443
+      - KEEPER_HTTP_TLS=1
+      - KEEPER_HTTP_CRTFILE=/app/certs/server.crt
+      - KEEPER_HTTP_KEYFILE=/app/certs/server.key
+      - KEEPER_WARMUP=5s
     networks:
       - internal
     ports:
-      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - "./certs:/app/certs"
 
     depends_on:
       - postgres
       - flyway
+      - certs-creater
+
+  certs-creater:
+    image: nginx:1.25.3
+    command: bash -c 'openssl genrsa -out /certs/ca.key 2048; openssl req -new -x509 -days 365 -key /certs/ca.key -subj "/C=CN/ST=GD/L=SZ/O=Nexadis/CN=GophKeeper" -out /certs/ca.crt; openssl req -newkey rsa:2048 -nodes -keyout /certs/server.key -subj "/C=CN/ST=GD/L=SZ/O=Nexadis/CN=*.localhost" -out /certs/server.csr; openssl x509 -req -extfile <(printf "subjectAltName=DNS:localhost,DNS:www.localhost") -days 365 -in /certs/server.csr -CA /certs/ca.crt -CAkey /certs/ca.key -CAcreateserial -out /certs/server.crt'
+    volumes:
+      - "./certs:/certs"
 
 networks:
   internal:

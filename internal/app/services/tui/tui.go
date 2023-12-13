@@ -8,16 +8,19 @@ import (
 	"github.com/Nexadis/GophKeeper/internal/models/datas"
 )
 
+// Connection - интерфейс для работы по сети с сервером
 type Connection interface {
 	Login(ctx context.Context, login, password string) error
 	Register(ctx context.Context, login, password string) error
 	SetAddress(address string)
+	GetAddress() string
 	GetData(ctx context.Context) ([]datas.Data, error)
 	PostData(ctx context.Context, dlist []datas.Data) error
 	UpdateData(ctx context.Context, dlist []datas.Data) error
 	DeleteData(ctx context.Context, ids []int) error
 }
 
+// Tui - структура для интерактивного взаимодействия с пользователем
 type Tui struct {
 	app           *tview.Application
 	pages         *tview.Pages
@@ -33,6 +36,7 @@ type page struct {
 	View tview.Primitive
 }
 
+// NewTui - создаёт экземпляр приложения с заданным подключение к серверу
 func NewTui(c Connection) *Tui {
 	pages := tview.NewPages()
 	app := tview.NewApplication()
@@ -58,6 +62,7 @@ func NewTui(c Connection) *Tui {
 
 }
 
+// Run - запускает tui
 func (t *Tui) Run(ctx context.Context) error {
 	return t.app.SetRoot(t.pages, true).Run()
 }

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	dateLayout     = "02/06"
+	dateLayout     = "01/06"
 	bankCardsep    = ";"
 	bankCardFormat = "%s;%s;%s;%d"
 )
@@ -21,35 +21,18 @@ var (
 	ErrCardInvalidFormat = errors.New("can't parse card info")
 )
 
+// SetBankCard - валидирует значения из строки и если всё нормально, то записывает их в структуру Data
 func (d *Data) SetBankCard(value string) error {
-	values := strings.Split(value, bankCardsep)
-	if len(values) != 4 {
-		return fmt.Errorf("%w: %q", ErrCardInvalidFormat, value)
-	}
-	number := values[0]
-	expire := values[2]
-	cvv, err := strconv.Atoi(values[3])
-	if err != nil {
-		return fmt.Errorf("%w: %q: %q", ErrCardInvalidCVV, err, value)
-	}
-
-	_, err = validateNumber(number)
+	b := bankCard{}
+	err := b.SetValue(value)
 	if err != nil {
 		return err
 	}
-	_, err = parseExpire(expire)
-	if err != nil {
-		return err
-	}
-	err = validateCVV(cvv)
-	if err != nil {
-		return err
-	}
-	d.editNow()
 	d.Value = value
-
 	return nil
 }
+
+// BankCardValues - парсит значение Value и возвращает все данные банковской карты по отдельности
 func (d *Data) BankCardValues() (number, cardHolder, expire string, cvv int) {
 	b := bankCard{}
 	b.SetValue(d.Value)
@@ -60,34 +43,6 @@ func (d *Data) BankCardValues() (number, cardHolder, expire string, cvv int) {
 	return
 }
 
-func validateNumber(number string) (string, error) {
-	trimmedNum := strings.TrimSpace(number)
-	cardnum := strings.Join(strings.Split(trimmedNum, " "), "")
-	_, err := strconv.Atoi(cardnum)
-	if err != nil {
-		return "", fmt.Errorf("%w %q", ErrCardInvalidNumber, err)
-	}
-	if len(cardnum) != 16 {
-		return "", fmt.Errorf("%w: %q", ErrCardInvalidNumber, number)
-	}
-	return cardnum, nil
-}
-
-func parseExpire(expire string) (time.Time, error) {
-	t, err := time.Parse(dateLayout, expire)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("%w: %q", ErrCardInvalidExpire, expire)
-	}
-	return t, nil
-}
-
-func validateCVV(CVV int) error {
-	if CVV <= 99 || CVV >= 1000 {
-		return fmt.Errorf("%w: %q", ErrCardInvalidCVV, CVV)
-	}
-	return nil
-}
-
 type bankCard struct {
 	metaData
 	number     string
@@ -96,10 +51,7 @@ type bankCard struct {
 	cvv        int
 }
 
-func (bk bankCard) Type() DataType {
-	return BankCardType
-}
-
+// NewBankCard - валидирует данные и создает структуру с данными банковской карты
 func NewBankCard(number, cardHolder, expire string, cvv int) (*bankCard, error) {
 	bc := bankCard{}
 	number, err := bc.validateNumber(number)
@@ -122,6 +74,7 @@ func NewBankCard(number, cardHolder, expire string, cvv int) (*bankCard, error) 
 	return &bc, nil
 }
 
+// Value - возвращает все данные банковской карты в виде строки
 func (bc bankCard) Value() string {
 	return fmt.Sprintf(
 		bankCardFormat,
@@ -132,6 +85,7 @@ func (bc bankCard) Value() string {
 	)
 }
 
+// SetValue - валидирует данные из строки и изменяет структуру внутри согласно данным
 func (bc *bankCard) SetValue(value string) error {
 	bc.editNow()
 	values := strings.Split(value, bankCardsep)

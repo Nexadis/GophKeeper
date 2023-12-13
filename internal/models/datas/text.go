@@ -11,10 +11,6 @@ func (d *Data) SetText(value string) error {
 	return nil
 }
 
-func (t text) Type() DataType {
-	return TextType
-}
-
 func NewText(data string) *text {
 	t := text{
 		data: data,
@@ -25,10 +21,4 @@ func NewText(data string) *text {
 
 func (t text) Value() string {
 	return t.data
-}
-
-func (t *text) SetValue(value string) error {
-	t.editNow()
-	t.data = value
-	return nil
 }

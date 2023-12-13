@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo/v4"
 
@@ -13,6 +14,33 @@ import (
 	"github.com/Nexadis/GophKeeper/internal/models/datas"
 )
 
+// Download - позволяет загрузить пользователю клиента под свою платформу и сертификат сервера
+func (hs *Server) Download(c echo.Context) error {
+	filename := c.Param("file")
+	logger.Infof("Download %s", filename)
+	d, err := os.ReadDir(hs.config.ClientsDir)
+	if err != nil {
+		logger.Error("Directory isn't exist")
+	} else {
+		for _, v := range d {
+			logger.Info(v.Name())
+		}
+	}
+	switch filename {
+	case "linux-GophKeeper":
+		return c.File(hs.config.ClientsDir + "/linux-client")
+	case "windows-GophKeeper":
+		return c.File(hs.config.ClientsDir + "/windows-client")
+	case "arm-linux-GophKeeper":
+		return c.File(hs.config.ClientsDir + "/arm-linux-client")
+	case "server.crt":
+		return c.File(hs.config.CrtFile)
+	default:
+		return c.NoContent(http.StatusNotFound)
+	}
+}
+
+// Register - регистрирует пользователя
 func (hs *Server) Register(c echo.Context) error {
 	u := &User{}
 	err := c.Bind(u)
@@ -40,6 +68,8 @@ func (hs *Server) Register(c echo.Context) error {
 
 	return c.NoContent(http.StatusOK)
 }
+
+// Login - авторизует пользователя
 func (hs *Server) Login(c echo.Context) error {
 	u := &User{}
 	err := c.Bind(u)
@@ -63,6 +93,7 @@ func (hs *Server) Login(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+// GetData - возвращает пользователю его данные
 func (hs *Server) GetData(c echo.Context) error {
 	uid, err := GetUID(c)
 	if err != nil {
@@ -83,6 +114,8 @@ func (hs *Server) GetData(c echo.Context) error {
 	return c.JSON(http.StatusOK, d)
 
 }
+
+// PostData - принимает от пользователя новые данные и обрабатывает их
 func (hs *Server) PostData(c echo.Context) error {
 	d := []datas.Data{}
 	err := c.Bind(&d)
@@ -103,6 +136,8 @@ func (hs *Server) PostData(c echo.Context) error {
 	return c.JSON(http.StatusOK, d)
 
 }
+
+// DeleteData - удаляет данные пользователя
 func (hs *Server) DeleteData(c echo.Context) error {
 	ids := []int{}
 	err := c.Bind(&ids)
@@ -129,6 +164,8 @@ func (hs *Server) DeleteData(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 
 }
+
+// UpdateData - обновляет данные пользователя
 func (hs *Server) UpdateData(c echo.Context) error {
 	d := []datas.Data{}
 	err := c.Bind(&d)
@@ -149,6 +186,7 @@ func (hs *Server) UpdateData(c echo.Context) error {
 	return c.JSON(http.StatusOK, d)
 }
 
+// Ping - проверяет доступность службы работы с данными
 func (hs *Server) Ping(c echo.Context) error {
 	err := hs.dataService.Health(c.Request().Context())
 	if err != nil {

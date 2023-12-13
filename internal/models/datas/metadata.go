@@ -7,19 +7,6 @@ import (
 
 var ErrInvalidType = errors.New("invalid type")
 
-type IData interface {
-	ID() int
-	SetID(id int)
-	UserID() int
-	SetUserID(id int)
-	Description() string
-	SetDescription(desc string)
-	CreatedAt() time.Time
-	EditedAt() time.Time
-	SetValue(value string) error
-	Value() string
-}
-
 type DataType int
 
 const (
@@ -29,6 +16,7 @@ const (
 	TextType
 )
 
+// ParseDataType - Возвращает тип данных по названию
 func ParseDataType(d string) (DataType, error) {
 	switch d {
 	case BankCardType.String():
@@ -40,7 +28,7 @@ func ParseDataType(d string) (DataType, error) {
 	case TextType.String():
 		return TextType, nil
 	default:
-		return 0, ErrInvalidType
+		return -1, ErrInvalidType
 	}
 }
 
@@ -62,6 +50,7 @@ type Data struct {
 	Value       string    `json:"value"`
 }
 
+// NewData - создаёт структуру Data для заданного типа данных, при этом валидируя value на соответсвие формату записи этих данных
 func NewData(t DataType, value string) (*Data, error) {
 	now := time.Now()
 	d := Data{
@@ -73,6 +62,7 @@ func NewData(t DataType, value string) (*Data, error) {
 	return &d, err
 }
 
+// SetValue - валидирут полученные данные согласно формату типа, если всё впорядке, то записывает их
 func (d *Data) SetValue(value string) error {
 	switch d.Type {
 	case BinaryType:
@@ -108,6 +98,7 @@ func newMetaData() metaData {
 	}
 }
 
+// String - возвращает название типа данных
 func (dt DataType) String() string {
 	var t string
 	switch dt {
@@ -123,41 +114,6 @@ func (dt DataType) String() string {
 		t = "Unknown type"
 	}
 	return t
-}
-
-func (md metaData) ID() int {
-	return md.id
-}
-
-func (md *metaData) SetID(id int) {
-	md.editNow()
-	md.id = id
-}
-
-func (md metaData) UserID() int {
-	return md.userID
-}
-
-func (md *metaData) SetUserID(id int) {
-	md.editNow()
-	md.userID = id
-}
-
-func (md metaData) Description() string {
-	return md.desc
-}
-
-func (md *metaData) SetDescription(desc string) {
-	md.editNow()
-	md.desc = desc
-}
-
-func (md metaData) CreatedAt() time.Time {
-	return md.createdAt
-}
-
-func (md metaData) EditedAt() time.Time {
-	return md.editedAt
 }
 
 func (md *metaData) editNow() {
